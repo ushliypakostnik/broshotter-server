@@ -1,15 +1,14 @@
 // Nest
-import { Controller, Get, Body } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode } from '@nestjs/common';
 
-// Services
-import { Users } from '../services/users';
+// Types
+import { IIndex } from '../models/models';
 
 @Controller()
 export class Index {
-  constructor(private readonly users: Users) {}
-
-  @Get()
-  addUser(@Body() body: number | null): number {
-    return this.users.addUser();
+  @Post()
+  @HttpCode(200)
+  index(@Body() body: IIndex) {
+    console.log('Post: ', body);
   }
 }

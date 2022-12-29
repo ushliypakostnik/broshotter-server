@@ -14,11 +14,10 @@ export class Users {
     this._list = [];
   }
 
-  addUser(): number {
+  add(): void {
     ++this._id;
-    const user = new User(this._id);
-    this._list.push(user);
-    console.log('New user: ', user.id);
-    return this._id;
+    const newUser = new User(this._id);
+    this._list.push(newUser);
+    console.log('New user: ', this._list);
   }
 }

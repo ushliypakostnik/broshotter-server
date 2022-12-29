@@ -3,5 +3,9 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export default class User {
-  constructor(public readonly id: number) {}
+  constructor(
+    readonly id: number,
+  ) {
+    console.log('UUUUUUUSSSSSEEEERRR!', this.id);
+  }
 }
