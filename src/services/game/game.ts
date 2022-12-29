@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import Users from './users/users';
 
 // Types
-import { IGameState, IUser, TUpdateMessage } from '../../models/models';
+import { IGameState, TUpdateMessage } from '../../models/models';
 
 @Injectable()
 export class Game {

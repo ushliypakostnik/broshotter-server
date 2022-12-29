@@ -1,7 +1,9 @@
+// Тест REST API
 export interface IIndex {
   [key: string]: any,
 }
 
+// Websockets messages
 export enum Messages {
   onConnect = 'onConnect', // На присоединение пользователя
   onOnConnect = 'onOnConnect', // Ответ клиента серверу на соединение
@@ -10,14 +12,18 @@ export enum Messages {
   onUpdateToServer = 'onUpdateToServer', // На обновление от клиента
 }
 
-export type TUpdateMessage = {
+// Игрок
+export interface IUser {
+  id: string;
   name: string,
 }
 
-export interface IUser extends TUpdateMessage {
-  id: string;
+// Обновления игрока
+export interface TUpdateMessage {
+  user: IUser,
 }
 
+// Игра
 export interface IGameState {
   game: {
     users: IUser[],
