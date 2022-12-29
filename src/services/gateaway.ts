@@ -7,43 +7,69 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 
+// Types
+import { TUpdateMessage } from '../models/models';
+
+// Constants
+import { Messages } from '../models/models';
+
 // Services
-import { Users } from '../services/users';
+import { Game } from '../services/game/game';
 
 @WebSocketGateway({
   cors: {
-    credentials: true
+    credentials: true,
   },
   allowEIO3: true,
 })
-export default class Gateway implements OnGatewayConnection, OnGatewayDisconnect {
+export default class Gateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   private server;
 
   // Gameplay
-  private _users: Users;
+  private _game: Game;
+  private _timeout!: ReturnType<typeof setTimeout>;
 
   constructor() {
-    this._users = new Users();
+    this._game = new Game();
+
+    // Запускаем постоянные обновления клиентов
+    this._timeout = setInterval(
+      () => this.getGame(),
+      process.env.TIMEOUT as unknown as number,
+    );
   }
 
-  async handleConnection() {
-    // A client has connected
-    // Notify connected clients of current users
-    // this.server.emit('users', {});
-    console.log('Gateaway handleConnection()!');
+  getGame(): void {
+    if (this.server) {
+      // console.log('Gateaway getGame() timeout!');
+      this.server.emit(Messages.updateToClients, this._game.getGame());
+    }
   }
 
-  async handleDisconnect() {
-    // A client has disconnected
-    // Notify connected clients of current users
-    // this.server.emit('users', {});
+  async handleConnection(T): Promise<typeof T> {
+    // Присоединился пользователь
+    console.log('Gateaway handleConnection() connect!');
+    this.server.emit(Messages.onConnect, this._game.getGame());
+  }
+
+  async handleDisconnect(T): Promise<typeof T> {
+    // Пользователь отвалился
     console.log('Gateaway handleDisconnect()!');
   }
 
-  @SubscribeMessage('test')
-  async onEnter(client, message) {
-    client.emit('onEnter', message);
-    console.log('Gateaway onEnter()!', message);
+  @SubscribeMessage(Messages.onOnConnect)
+  async onOnConnect(): Promise<void> {
+    this._game.addUser();
+    console.log('Gateaway onOnConnect()!');
+  }
+
+  @SubscribeMessage(Messages.updateToServer)
+  async onUpdateToServer(client, message: TUpdateMessage): Promise<void> {
+    this._game.setUser(message);
+    console.log('Gateaway onUpdateToServer()!');
+    client.emit(Messages.onUpdateToServer);
   }
 }
