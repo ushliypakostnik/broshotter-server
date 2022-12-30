@@ -8,13 +8,16 @@ import {
 } from '@nestjs/websockets';
 
 // Types
-import { TUpdateMessage } from '../models/models';
+import { IUpdateMessage } from '../models/models';
 
 // Constants
 import { Messages } from '../models/models';
 
 // Services
 import { Game } from '../services/game/game';
+
+// Utils
+import Helper from './utils/helper';
 
 @WebSocketGateway({
   cors: {
@@ -33,43 +36,55 @@ export default class Gateway
   private _timeout!: ReturnType<typeof setTimeout>;
 
   constructor() {
+    // Go!
     this._game = new Game();
 
     // Запускаем постоянные обновления клиентов
     this._timeout = setInterval(
-      () => this.getGame(),
+      () => this.getGameUpdates(),
       process.env.TIMEOUT as unknown as number,
     );
   }
 
-  getGame(): void {
+  // Пульнуть всем стейт игры
+  getGameUpdates(): void {
     if (this.server) {
       // console.log('Gateaway getGame() timeout!');
-      this.server.emit(Messages.updateToClients, this._game.getGame());
+      this.server.emit(Messages.updateToClients, this._game.getGameUpdates());
     }
   }
 
+  // Присоединился пользователь
   async handleConnection(T): Promise<typeof T> {
-    // Присоединился пользователь
     console.log('Gateaway handleConnection() connect!');
-    this.server.emit(Messages.onConnect, this._game.getGame());
+    this.server.emit(Messages.onConnect, this._game.getGameUpdates());
   }
 
+  // Пользователь отвалился
   async handleDisconnect(T): Promise<typeof T> {
-    // Пользователь отвалился
     console.log('Gateaway handleDisconnect()!');
   }
 
+  // Пришла реакция на сообщение о соединении
   @SubscribeMessage(Messages.onOnConnect)
-  async onOnConnect(): Promise<void> {
-    this._game.addUser();
-    console.log('Gateaway onOnConnect()!');
+  async onOnConnect(client, message: IUpdateMessage): Promise<void> {
+    console.log('Gateaway onOnConnect()!', message);
+    // Если пришел айди или пришел но неправильный - добавляем игрока
+    if (
+      Helper.isEmptyObject(message) ||
+      !Helper.isHasProperty(message, 'id') ||
+      !message.id ||
+      !this._game.checkPlayerId(message.id)
+    ) {
+      console.log('Не пришел айди игрока!');
+      client.emit(Messages.setNewPlayer, this._game.setNewPlayer());
+    } else this._game.updatePlayer(message.id);
   }
 
+  // Пришли обновления от клиента
   @SubscribeMessage(Messages.updateToServer)
-  async onUpdateToServer(client, message: TUpdateMessage): Promise<void> {
-    this._game.setUser(message);
-    console.log('Gateaway onUpdateToServer()!');
-    client.emit(Messages.onUpdateToServer);
+  async onUpdateToServer(client, message: IUpdateMessage): Promise<void> {
+    // console.log('Gateaway onUpdateToServer()!', message);
+    this._game.onUpdateToServer(message);
   }
 }

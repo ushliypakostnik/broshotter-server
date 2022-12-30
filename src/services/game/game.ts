@@ -1,10 +1,14 @@
 // Nest
 import { Injectable } from '@nestjs/common';
 
-import Users from './users/users';
-
 // Types
-import { IGameState, TUpdateMessage } from '../../models/models';
+import type {
+  IGameUpdates,
+  IUpdateMessage,
+} from '../../models/models';
+
+// Modules
+import Users from './users/users';
 
 @Injectable()
 export class Game {
@@ -14,23 +18,34 @@ export class Game {
     this._users = new Users();
   }
 
-  public getGame(): IGameState {
-    return this._returnState();
+  public getGameUpdates(): IGameUpdates {
+    return this._returnGameUpdates();
   }
 
-  public addUser(): void {
-    this._users.add();
+  public setNewPlayer(): IUpdateMessage {
+    return this._users.setNewPlayer();
   }
 
-  public setUser(message: TUpdateMessage): void {
-    this._users.set(message);
+  public updatePlayer(id: string): void {
+    return this._users.updatePlayer(id);
   }
 
-  private _returnState(): IGameState {
-    return {
-      game: {
-        users: this._users.list,
-      },
-    }
+  public checkPlayerId(id: string): boolean {
+    return this._users.checkPlayerId(id);
+  }
+
+  public onUpdateToServer(message: IUpdateMessage): void {
+    this._users.onUpdateToServer(message);
+  }
+
+  private _returnGameUpdates(): IGameUpdates {
+    return  {
+      users: this._users.list.map((user) => {
+        return {
+          id: user.id,
+          updates: { ...user },
+        };
+      }),
+    };
   }
 }
