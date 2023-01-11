@@ -8,7 +8,7 @@ import {
 } from '@nestjs/websockets';
 
 // Types
-import { IUpdateMessage } from '../models/models';
+import { IUpdateMessage, IShot, IExplosion } from '../models/models';
 
 // Constants
 import { Messages } from '../models/models';
@@ -74,17 +74,54 @@ export default class Gateway
       Helper.isEmptyObject(message) ||
       !Helper.isHasProperty(message, 'id') ||
       !message.id ||
-      !this._game.checkPlayerId(message.id)
+      !this._game.checkPlayerId(message.id as string)
     ) {
       console.log('Не пришел айди игрока!');
       client.emit(Messages.setNewPlayer, this._game.setNewPlayer());
-    } else this._game.updatePlayer(message.id);
+    } else {
+      client.emit(Messages.onUpdatePlayer, this._game.updatePlayer(message.id as string));
+    }
+  }
+
+  // Пользователь сказал как его зовут
+  @SubscribeMessage(Messages.enter)
+  async onEnter(client, message: IUpdateMessage): Promise<void> {
+    console.log('Gateaway onEnter()!', message);
+    this._game.onEnter(message);
+    client.emit(Messages.onEnter);
+  }
+
+  // Пользователь сказал как его зовут
+  @SubscribeMessage(Messages.reenter)
+  async onReenter(client, message: IUpdateMessage): Promise<void> {
+    console.log('Gateaway onRenter()!', message);
+    this._game.onReenter(message);
   }
 
   // Пришли обновления от клиента
   @SubscribeMessage(Messages.updateToServer)
   async onUpdateToServer(client, message: IUpdateMessage): Promise<void> {
-    // console.log('Gateaway onUpdateToServer()!', message);
     this._game.onUpdateToServer(message);
+  }
+
+  // Пришли обновления от клиента
+  @SubscribeMessage(Messages.shot)
+  async onShot(client, message: IShot): Promise<void> {
+    this.server.emit(Messages.onShot, this._game.onShot(message));
+  }
+
+  // Выстрел клиента улетел
+  @SubscribeMessage(Messages.unshot)
+  async onUnshot(client, message: number): Promise<void> {
+    this._game.onUnshot(message);
+    this.server.emit(Messages.onUnshot, message);
+  }
+
+  // Взрыв на клиенте
+  @SubscribeMessage(Messages.explosion)
+  async explosion(client, message: IExplosion): Promise<void> {
+    console.log('Gateaway explosion!!!', message);
+    this._game.onUnshot(message.id); // Удаляем выстрел
+    this.server.emit(Messages.onExplosion, this._game.onExplosion(message));
   }
 }
