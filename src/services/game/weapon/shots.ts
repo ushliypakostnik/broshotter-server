@@ -7,6 +7,9 @@ import math3d from 'math3d';
 // Types
 import { IShot } from '../../../models/models';
 
+// Utils
+import Helper from '../../utils/helper';
+
 @Injectable()
 export default class Shots {
   public list: IShot[];
@@ -19,6 +22,8 @@ export default class Shots {
   private _v3!: math3d.Vector3;
   private _v4!: math3d.Vector3;
   private _center!: math3d.Vector3;
+  private _distance!: number;
+  private _damping!: number;
 
   constructor() {
     this.list = [];
@@ -68,9 +73,12 @@ export default class Shots {
         shot.startZ,
       );
       // Гравитация и небольшое снижение скорости
-      if (this._v1.distanceTo(this._v3) > 6) shot.gravity -= 0.0025;
+      this._distance = this._v1.distanceTo(this._v3);
+      if (this._distance > 10) shot.gravity -= 0.0025;
 
-      this._v4 = this._v1.add(this._v2).mulScalar(0.99);
+      this._v2 = this._v2.mulScalar(0.95);
+
+      this._v4 = this._v1.add(this._v2);
       shot.positionX = this._v4.x;
       shot.positionY = this._v4.y + shot.gravity;
       shot.positionZ = this._v4.z;

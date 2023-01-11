@@ -126,6 +126,7 @@ export default class Users {
           is: message.isOnEnemy,
         });
       }
+      if (player.health < 0) player.animation = 'dead';
     });
     return {
       message,
