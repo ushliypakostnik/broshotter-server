@@ -41,6 +41,7 @@ export interface IShot extends IMoveObject {
   startX: number;
   startY: number;
   startZ: number;
+  gravity: number;
 }
 
 export interface IExplosion extends IShot {

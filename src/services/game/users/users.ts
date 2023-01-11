@@ -136,8 +136,10 @@ export default class Users {
   public onUpdateToServer(message: IUpdateMessage): void {
     // console.log('Users onUpdateToServer: ', message);
     this._item = this._getUserById(message.id as string);
-    for (let property in message) {
-      if (property != 'id') this._item[property] = message[property];
+    if (this._item) {
+      for (let property in message) {
+        if (property != 'id') this._item[property] = message[property];
+      }
     }
   }
 }

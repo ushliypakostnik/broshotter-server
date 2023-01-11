@@ -17,6 +17,7 @@ export default class Shots {
   private _v1!: math3d.Vector3;
   private _v2!: math3d.Vector3;
   private _v3!: math3d.Vector3;
+  private _v4!: math3d.Vector3;
   private _center!: math3d.Vector3;
 
   constructor() {
@@ -37,6 +38,7 @@ export default class Shots {
     this._item = {
       ...message,
       id: this._counter,
+      gravity: 0,
     };
     this.list.push(this._item);
     // console.log('Shots onShot()!', this.list);
@@ -50,7 +52,7 @@ export default class Shots {
 
   private _upgrade() {
     this.list.forEach((shot) => {
-     this._v1 = new this._math.Vector3(
+      this._v1 = new this._math.Vector3(
         shot.positionX,
         shot.positionY,
         shot.positionZ,
@@ -60,10 +62,18 @@ export default class Shots {
         shot.directionY,
         shot.directionZ,
       );
-      this._v3 = this._v1.add(this._v2);
-      shot.positionX = this._v3.x;
-      shot.positionY = this._v3.y;
-      shot.positionZ = this._v3.z;
+      this._v3 = new this._math.Vector3(
+        shot.startX,
+        shot.startY,
+        shot.startZ,
+      );
+      // Гравитация и небольшое снижение скорости
+      if (this._v1.distanceTo(this._v3) > 6) shot.gravity -= 0.0025;
+
+      this._v4 = this._v1.add(this._v2).mulScalar(0.99);
+      shot.positionX = this._v4.x;
+      shot.positionY = this._v4.y + shot.gravity;
+      shot.positionZ = this._v4.z;
 
       // Сносим выстрел если он улетел за пределы локации
       // Если ушел под пол или улетел слишком высоко
