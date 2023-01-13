@@ -73,7 +73,6 @@ export default class Gateway
     if (
       Helper.isEmptyObject(message) ||
       !Helper.isHasProperty(message, 'id') ||
-      !message.id ||
       !this._game.checkPlayerId(message.id as string)
     ) {
       console.log('Не пришел айди игрока!');
@@ -123,5 +122,12 @@ export default class Gateway
     console.log('Gateaway explosion!!!', message);
     this._game.onUnshot(message.id); // Удаляем выстрел
     this.server.emit(Messages.onExplosion, this._game.onExplosion(message));
+  }
+
+  // Взрыв на клиенте
+  @SubscribeMessage(Messages.selfharm)
+  async selfharm(client, message: IUpdateMessage): Promise<void> {
+    console.log('Gateaway selfharm!!!', message);
+    this.server.emit(Messages.onSelfharm, this._game.onSelfharm(message));
   }
 }

@@ -8,7 +8,7 @@ import math3d from 'math3d';
 import {
   IUserBack,
   IUpdateMessage,
-  IOnExplosion,
+  IOnExplosion, IExplosion,
 } from '../../../models/models';
 
 // Modules
@@ -101,7 +101,7 @@ export default class Users {
     }
   }
 
-  public onExplosion(message: IUpdateMessage): IOnExplosion {
+  public onExplosion(message: IExplosion): IOnExplosion {
     // console.log('Users onExplosion!!!!!!!!!!!!!: ', message);
     this._updates = [];
     this.list.forEach((player: User) => {
@@ -116,14 +116,16 @@ export default class Users {
         player.positionZ,
       );
       if (this._v1.distanceTo(this._v2) < 5) {
+        // При попадании по коробке - ущерб в три раза сильнее
+        // Если режим скрытый - в два раза меньше
         player.health +=
           (-1 / this._v1.distanceTo(this._v2)) *
-          (message.isOnEnemy ? 15 : 5) *
+          (player.id === message.enemy ? 15 : 5) *
           (player.animation.includes('hide') ? 0.5 : 1);
         this._updates.push({
           id: player.id,
           health: player.health,
-          is: message.isOnEnemy,
+          is: player.id === message.enemy,
         });
       }
       if (player.health < 0) player.animation = 'dead';
@@ -131,6 +133,16 @@ export default class Users {
     return {
       message,
       updates: this._updates,
+    };
+  }
+
+  public onSelfharm(message: IUpdateMessage): IUpdateMessage {
+    console.log('Users onSelfharm: ', message);
+    this._item = this._getUserById(message.id as string);
+    this._item.health -= message.value as number;
+    return {
+      id: message.id,
+      health: this._item.health,
     };
   }
 

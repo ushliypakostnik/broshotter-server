@@ -7,6 +7,7 @@ import type {
   IUpdateMessage,
   IShot,
   IOnExplosion,
+  IExplosion,
 } from '../../models/models';
 
 // Modules
@@ -60,12 +61,16 @@ export class Game {
     this._shots.onUnshot(message);
   }
 
-  public onExplosion(message): IOnExplosion {
+  public onExplosion(message: IExplosion): IOnExplosion {
     return this._users.onExplosion(message);
   }
 
+  public onSelfharm(message: IUpdateMessage): IUpdateMessage {
+    return this._users.onSelfharm(message);
+  }
+
   private _returnGameUpdates(): IGameUpdates {
-    return  {
+    return {
       users: this._users.list,
       shots: this._shots.list,
     };

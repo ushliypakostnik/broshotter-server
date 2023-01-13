@@ -22,6 +22,8 @@ export enum Messages {
   onUnshot = 'onUnshot', // На удаление выстрела
   explosion = 'explosion', // На взрыв
   onExplosion = 'onExplosion', // На ответ взрыв
+  selfharm = 'selfharm', // Самоповреждение
+  onSelfharm = 'onSelfharm', // На самоповреждение
 }
 
 // Движущийся объект принадлежащий игроку (выстрел) или сам игрок
@@ -45,11 +47,11 @@ export interface IShot extends IMoveObject {
 }
 
 export interface IExplosion extends IShot {
-  isOnEnemy: boolean;
+  enemy: string;
 }
 
 export interface IOnExplosion {
-  message: IUpdateMessage;
+  message: IExplosion;
   updates: IUpdateMessage[],
 }
 
