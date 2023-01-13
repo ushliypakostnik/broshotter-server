@@ -119,7 +119,7 @@ export default class Gateway
   // Взрыв на клиенте
   @SubscribeMessage(Messages.explosion)
   async explosion(client, message: IExplosion): Promise<void> {
-    console.log('Gateaway explosion!!!', message);
+    // console.log('Gateaway explosion!!!', message);
     this._game.onUnshot(message.id); // Удаляем выстрел
     this.server.emit(Messages.onExplosion, this._game.onExplosion(message));
   }
@@ -127,7 +127,7 @@ export default class Gateway
   // Взрыв на клиенте
   @SubscribeMessage(Messages.selfharm)
   async selfharm(client, message: IUpdateMessage): Promise<void> {
-    console.log('Gateaway selfharm!!!', message);
+    // console.log('Gateaway selfharm!!!', message);
     this.server.emit(Messages.onSelfharm, this._game.onSelfharm(message));
   }
 }

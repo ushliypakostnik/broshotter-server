@@ -46,13 +46,13 @@ export default class Shots {
       gravity: 0,
     };
     this.list.push(this._item);
-    // console.log('Shots onShot()!', this.list);
+    console.log('Shots onShot()!', this.list.length);
     return this._item;
   }
 
   public onUnshot(message: number): void {
     this.list = this.list.filter((shot) => shot.id !== message);
-    // console.log('Shots onUnshot()!', message, this.list);
+    console.log('Shots onUnshot()!', message, this.list.length);
   }
 
   private _upgrade() {
@@ -67,11 +67,7 @@ export default class Shots {
         shot.directionY,
         shot.directionZ,
       );
-      this._v3 = new this._math.Vector3(
-        shot.startX,
-        shot.startY,
-        shot.startZ,
-      );
+      this._v3 = new this._math.Vector3(shot.startX, shot.startY, shot.startZ);
       // Гравитация и небольшое снижение скорости
       this._distance = this._v1.distanceTo(this._v3);
       if (this._distance > 10) shot.gravity -= 0.0025;
@@ -85,10 +81,11 @@ export default class Shots {
 
       // Сносим выстрел если он улетел за пределы локации
       // Если ушел под пол или улетел слишком высоко
-      if ((
-        this._v3.distanceTo(this._center) >
-        process.env.SIZE as unknown as number * 2.5
-      ) || (this._v3.positionY < -50))
+      if (
+        ((this._v1.distanceTo(this._center) >
+          process.env.SIZE) as unknown as number) * 2.5 ||
+        this._v3.positionY < -50
+      )
         this.onUnshot(shot.id as number);
     });
   }

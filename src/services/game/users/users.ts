@@ -89,7 +89,11 @@ export default class Users {
   public onEnter(message: IUpdateMessage): void {
     console.log('Users onEnter: ', message);
     this._item = this._getUserById(message.id as string);
-    this._item.name = message.name as string;
+    try {
+      this._item.name = message.name as string;
+    } catch (error) {
+      console.log('Users onEnter ERROR: ', message, error);
+    }
   }
 
   public onReenter(message: IUpdateMessage): void {
