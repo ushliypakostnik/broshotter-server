@@ -46,13 +46,20 @@ export default class Shots {
       gravity: 0,
     };
     this.list.push(this._item);
-    console.log('Shots onShot()!', this.list.length);
+    // console.log('Shots onShot()!', message);
     return this._item;
   }
 
-  public onUnshot(message: number): void {
+  public onUnshot(message: number): string {
+    this._item = this.list.find((shot) => shot.id === message);
     this.list = this.list.filter((shot) => shot.id !== message);
-    console.log('Shots onUnshot()!', message, this.list.length);
+    // console.log('Shots onUnshot()!', message, this.list.length);
+    return this._item.location;
+  }
+
+  public onUnshotExplosion(message: number): void {
+    this.list = this.list.filter((shot) => shot.id !== message);
+    // console.log('Shots onUnshotExplosion()!', message, this.list.length);
   }
 
   private _upgrade() {

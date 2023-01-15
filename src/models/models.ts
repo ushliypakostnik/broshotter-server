@@ -1,8 +1,3 @@
-// Тест REST API
-export interface IIndex {
-  [key: string]: any,
-}
-
 // Websockets messages
 export enum Messages {
   onConnect = 'onConnect', // На присоединение пользователя
@@ -24,6 +19,8 @@ export enum Messages {
   onExplosion = 'onExplosion', // На ответ взрыв
   selfharm = 'selfharm', // Самоповреждение
   onSelfharm = 'onSelfharm', // На самоповреждение
+  relocation = 'relocation', // Переход на другую локацию
+  onRelocation = 'onRelocation', // На переход на другую локацию
 }
 
 // Движущийся объект принадлежащий игроку (выстрел) или сам игрок
@@ -40,6 +37,7 @@ export interface IMoveObject {
 export interface IShot extends IMoveObject {
   id: number | null;
   player: string;
+  location: string;
   startX: number;
   startY: number;
   startZ: number;
@@ -57,7 +55,7 @@ export interface IOnExplosion {
 
 // Игрок
 export interface IUser extends IMoveObject {
-  id: string;
+  id: string
   name: string;
   animation: string;
   isFire: boolean;
@@ -79,4 +77,43 @@ export interface IUpdateMessage {
 export interface IGameUpdates {
   users: IUser[],
   shots: IShot[],
+}
+
+// Мир
+export interface IPosition {
+  x: number;
+  z: number;
+};
+
+export interface ITree {
+  x: number;
+  z: number;
+  scale: number;
+  rotateX: number;
+  rotateY: number;
+  rotateZ: number;
+}
+
+export interface ILocation {
+  id: string;
+  x: number;
+  y: number;
+}
+
+export interface ILocationUsers extends ILocation {
+  users: string[];
+}
+
+export interface ILocationWorld extends ILocation {
+  name: string;
+  ground: string;
+  trees: ITree[];
+}
+
+export interface ILocations {
+  [key: string]: ILocationUsers;
+}
+
+export interface ILocationsWorld {
+  [key: string]: ILocationWorld;
 }

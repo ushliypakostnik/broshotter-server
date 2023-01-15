@@ -6,12 +6,15 @@ import { Module } from '@nestjs/common';
 import { Index } from '../controllers';
 
 // Services
-import Gateway from '../services/gateaway';
+import Gateway from '../services/gateway';
 
 @Module({
-  imports: [ConfigModule.forRoot()],
+  imports: [ConfigModule.forRoot({
+    isGlobal: true,
+  })],
   controllers: [Index],
   providers: [Gateway],
+  exports: [Gateway],
 })
 export class App {
   constructor() {

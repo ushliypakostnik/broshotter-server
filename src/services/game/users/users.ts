@@ -58,8 +58,8 @@ export default class Users {
 
   // Gameplay
 
-  public setNewPlayer(): IUpdateMessage {
-    this._strind = Helper.generatePlayerId();
+  public setNewPlayer(): User {
+    this._strind = Helper.generateId(4);
     this._item = new User(this._strind);
     this._item = {
       ...this._item,
@@ -69,7 +69,7 @@ export default class Users {
     this._listBack.push({ id: this._strind, last: `${new Date()}` });
 
     console.log('Users setNewPlayer', this._item);
-    return { id: this._strind, name: null };
+    return this._item;
   }
 
   public checkPlayerId(id: string): boolean {
@@ -83,6 +83,7 @@ export default class Users {
     this._item.last = `${new Date()}`;
 
     this._item = this._getUserById(id);
+    console.log('Users updatePlayer: ', this._item);
     return this._item;
   }
 
@@ -92,6 +93,8 @@ export default class Users {
     try {
       this._item.name = message.name as string;
     } catch (error) {
+      // Вот такая ситуация возможна только если сервер упал и перезапустился и мы "потеряли юзера"
+      // Поэтому пока не обрабатываем
       console.log('Users onEnter ERROR: ', message, error);
     }
   }
@@ -141,13 +144,30 @@ export default class Users {
   }
 
   public onSelfharm(message: IUpdateMessage): IUpdateMessage {
-    console.log('Users onSelfharm: ', message);
+    // console.log('Users onSelfharm: ', message);
     this._item = this._getUserById(message.id as string);
     this._item.health -= message.value as number;
     return {
       id: message.id,
       health: this._item.health,
     };
+  }
+
+  public onRelocation(message: IUpdateMessage): void {
+    this._item = this._getUserById(message.id as string);
+
+    if (message.direction === 'right' || message.direction === 'left') this._item.positionX *= -1;
+    else if (message.direction === 'top' || message.direction === 'bottom') this._item.positionZ *= -1;
+
+    this._v1 = new this._math.Vector3(
+      this._item.positionX,
+      0,
+      this._item.positionZ,
+    ).mulScalar(0.85);
+
+    this._item.positionX = this._v1.x;
+    this._item.positionY = 0;
+    this._item.positionZ = this._v1.z;
   }
 
   public onUpdateToServer(message: IUpdateMessage): void {
