@@ -8,7 +8,8 @@ import math3d from 'math3d';
 import {
   IUserBack,
   IUpdateMessage,
-  IOnExplosion, IExplosion,
+  IOnExplosion,
+  IExplosion,
 } from '../../../models/models';
 
 // Modules
@@ -20,7 +21,8 @@ import Helper from '../../utils/helper';
 @Injectable()
 export default class Users {
   public list: User[];
-  private _listBack: IUserBack[];
+  public listBack: IUserBack[];
+  public counter = 0;
 
   private _updates!: IUpdateMessage[];
   private _item!: User | IUserBack;
@@ -41,7 +43,7 @@ export default class Users {
 
   constructor() {
     this.list = [];
-    this._listBack = [];
+    this.listBack = [];
 
     this._math = require('math3d');
   }
@@ -53,20 +55,35 @@ export default class Users {
   }
 
   private _getUserBackById(id: string): IUserBack {
-    return this._listBack.find((player) => player.id === id);
+    return this.listBack.find((player) => player.id === id);
+  }
+
+  private _getIds() {
+    return this.listBack.map((player) => {
+      return player.id;
+    })
   }
 
   // Gameplay
 
   public setNewPlayer(): User {
-    this._strind = Helper.generateId(4);
+    this._strind = Helper.generateUniqueId(4, this._getIds());
     this._item = new User(this._strind);
     this._item = {
       ...this._item,
       ...this._START,
     };
     this.list.push(this._item as User);
-    this._listBack.push({ id: this._strind, last: `${new Date()}` });
+    const date = new Date();
+    const time = Helper.getUnixtime(date);
+    this.listBack.push({
+      id: this._strind,
+      last: date,
+      unix: time,
+      time: null,
+      play: 0,
+      counter: ++this.counter,
+    });
 
     console.log('Users setNewPlayer', this._item);
     return this._item;
@@ -79,12 +96,17 @@ export default class Users {
 
   public updatePlayer(id: string): User {
     // console.log('Users updatePlayer!');
-    this._item = this._getUserBackById(id);
-    this._item.last = `${new Date()}`;
+    // this._item = this._getUserBackById(id);
+    // this._item.last = `${new Date()}`;
 
     this._item = this._getUserById(id);
     console.log('Users updatePlayer: ', this._item);
     return this._item;
+  }
+
+  private _removePlayer(id: string): void {
+    this.list = this.list.filter((player) => player.id !== id);
+    this.listBack = this.listBack.filter((player) => player.id !== id);
   }
 
   public onEnter(message: IUpdateMessage): void {
@@ -105,7 +127,7 @@ export default class Users {
     this._item = {
       ...this._item,
       ...this._START,
-    }
+    };
   }
 
   public onExplosion(message: IExplosion): IOnExplosion {
@@ -156,8 +178,10 @@ export default class Users {
   public onRelocation(message: IUpdateMessage): void {
     this._item = this._getUserById(message.id as string);
 
-    if (message.direction === 'right' || message.direction === 'left') this._item.positionX *= -1;
-    else if (message.direction === 'top' || message.direction === 'bottom') this._item.positionZ *= -1;
+    if (message.direction === 'right' || message.direction === 'left')
+      this._item.positionX *= -1;
+    else if (message.direction === 'top' || message.direction === 'bottom')
+      this._item.positionZ *= -1;
 
     this._v1 = new this._math.Vector3(
       this._item.positionX,
@@ -175,8 +199,21 @@ export default class Users {
     this._item = this._getUserById(message.id as string);
     if (this._item) {
       for (let property in message) {
-        if (property != 'id') this._item[property] = message[property];
+        if (property != 'id') {
+          if (property === 'time') {
+            this._item = this._getUserBackById(message.id as string);
+            this._item.time = message[property] as number;
+            this._item.play =  (this._item.time -  this._item.unix) / 60;
+          } else this._item[property] = message[property];
+        }
       }
     }
+  }
+
+  public checkUsers(): void {
+    const time = Helper.getUnixtime();
+    this.listBack.forEach((player: IUserBack) => {
+      if (time - player.time > 43200) this._removePlayer(player.id);
+    });
   }
 }

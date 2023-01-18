@@ -85,7 +85,16 @@ export default class Helper {
     return Object.prototype.hasOwnProperty.call(target, property);
   }
 
-  static generateId(length: number): string {
-    return randomBytes(length).toString('hex');
+  static generateUniqueId(length: number, ids: string[]): string {
+    let id;
+    while (!id || ids.includes(id)) {
+      id = randomBytes(length).toString('hex');
+    }
+    return id;
+  }
+
+  static getUnixtime(date?: Date): number {
+    if (date) return Math.round(date.getTime()/1000.0);
+    return Math.round(new Date().getTime()/1000.0);
   }
 }

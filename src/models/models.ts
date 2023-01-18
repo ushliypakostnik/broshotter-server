@@ -65,7 +65,11 @@ export interface IUser extends IMoveObject {
 // Для бека
 export interface IUserBack {
   id: string;
-  last: string;
+  last: Date;
+  unix: number;
+  time: number | null;
+  play: number;
+  counter: number;
 }
 
 // Обновления игрока

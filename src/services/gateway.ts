@@ -39,7 +39,9 @@ export default class Gateway
 
   // Gameplay
   public game: Game;
+
   private _timeout!: ReturnType<typeof setInterval>;
+  private _counter = 0;
   private _locations: ILocationUsers[];
 
   constructor() {
@@ -67,6 +69,12 @@ export default class Gateway
             this.game.getGameUpdates(location.id),
           );
       });
+
+      ++this._counter;
+      if (this._counter > 4000) {
+        this.game.checkUsers();
+        this._counter = 0;
+      }
     }
   }
 

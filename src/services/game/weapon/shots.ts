@@ -7,14 +7,12 @@ import math3d from 'math3d';
 // Types
 import { IShot } from '../../../models/models';
 
-// Utils
-import Helper from '../../utils/helper';
-
 @Injectable()
 export default class Shots {
   public list: IShot[];
+  public counter = 0;
+
   private _item!: IShot;
-  private _counter = 0;
   private _timeout!: ReturnType<typeof setTimeout>;
   private _math: math3d;
   private _v1!: math3d.Vector3;
@@ -23,7 +21,6 @@ export default class Shots {
   private _v4!: math3d.Vector3;
   private _center!: math3d.Vector3;
   private _distance!: number;
-  private _damping!: number;
 
   constructor() {
     this.list = [];
@@ -39,10 +36,10 @@ export default class Shots {
   }
 
   public onShot(message: IShot): IShot {
-    ++this._counter;
+    ++this.counter;
     this._item = {
       ...message,
-      id: this._counter,
+      id: this.counter,
       gravity: 0,
     };
     this.list.push(this._item);

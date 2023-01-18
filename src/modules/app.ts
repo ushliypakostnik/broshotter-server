@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 
 // Controllers
-import { Index } from '../controllers';
+import Api from '../controllers/api';
 
 // Services
 import Gateway from '../services/gateway';
@@ -12,7 +12,7 @@ import Gateway from '../services/gateway';
   imports: [ConfigModule.forRoot({
     isGlobal: true,
   })],
-  controllers: [Index],
+  controllers: [Api],
   providers: [Gateway],
   exports: [Gateway],
 })

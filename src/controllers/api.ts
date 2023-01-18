@@ -2,17 +2,14 @@
 import { Controller, Get, Param, HttpCode, Inject } from '@nestjs/common';
 
 // Types
-import type {
-  ILocation,
-  ILocationUsers,
-} from '../models/models';
+import type { ILocation, ILocationUsers, IUserBack } from '../models/models';
 
 // Modules
 import Gateway from '../services/gateway';
 import User from '../services/game/users/user';
 
 @Controller()
-export class Index {
+export default class Api {
   @Inject(Gateway)
   private _gateway: Gateway;
 
@@ -26,7 +23,19 @@ export class Index {
     };
   }
 
-  @Get(':id')
+  @Get('/stats')
+  @HttpCode(200)
+  public getStats(): { users: number; shots: number; now: number; list: IUserBack[] } {
+    console.log('Controller Get getStats!!!');
+    return {
+      users: this._gateway.game.users.counter,
+      shots: this._gateway.game.shots.counter,
+      now: this._gateway.game.shots.list.length,
+      list: this._gateway.game.users.listBack,
+    };
+  }
+
+  @Get('/locations/:id')
   @HttpCode(200)
   public getLocation(@Param() params): ILocation {
     console.log('Controller Get getLocation!!! ', params);

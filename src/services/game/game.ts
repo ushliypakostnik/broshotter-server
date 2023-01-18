@@ -8,20 +8,22 @@ import type {
   IShot,
   IOnExplosion,
   IExplosion,
-  IUser,
+  IUser, IUserBack,
 } from '../../models/models';
 
 // Modules
 import World from './world/world';
 import Users from './users/users';
 import Shots from './weapon/shots';
+import Helper from '../utils/helper';
 
 @Injectable()
 export default class Game {
   public world!: World;
   public users!: Users;
+  public shots!: Shots;
+
   private _user!: IUser;
-  private _shots!: Shots;
   private _usersOnLocation: string[];
 
   private _id!: string;
@@ -30,7 +32,7 @@ export default class Game {
   constructor() {
     this.world = new World();
     this.users = new Users();
-    this._shots = new Shots();
+    this.shots = new Shots();
   }
 
   public getGameUpdates(location: string): IGameUpdates {
@@ -39,7 +41,7 @@ export default class Game {
       users: this.users.list.filter((user) =>
         this._usersOnLocation.includes(user.id),
       ),
-      shots: this._shots.list.filter((shot) => shot.location === location),
+      shots: this.shots.list.filter((shot) => shot.location === location),
     };
   }
 
@@ -65,6 +67,10 @@ export default class Game {
     return this.users.checkPlayerId(id);
   }
 
+  public checkUsers(): void {
+    this.users.checkUsers();
+  }
+
   public onEnter(message: IUpdateMessage): void {
     this.users.onEnter(message);
   }
@@ -78,15 +84,15 @@ export default class Game {
   }
 
   public onShot(message: IShot): IShot {
-    return this._shots.onShot(message);
+    return this.shots.onShot(message);
   }
 
   public onUnshot(message: number): string {
-    return this._shots.onUnshot(message);
+    return this.shots.onUnshot(message);
   }
 
   public onUnshotExplosion(message: number): void {
-    return this._shots.onUnshotExplosion(message);
+    return this.shots.onUnshotExplosion(message);
   }
 
   public onExplosion(message: IExplosion): IOnExplosion {

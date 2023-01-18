@@ -23,6 +23,7 @@ export default class World {
   public design: ILocationsWorld;
   public array: ILocationUsers[];
 
+  private _ids: string[];
   private _item: ILocationUsers;
   private _x: number;
   private _y: number;
@@ -35,13 +36,15 @@ export default class World {
   private _id: string;
 
   constructor() {
+    this._ids = [];
     this._helper = new Helper();
     this.locations = {};
     this.design = {};
     this.array = [];
     for (let x = 0; x < this._SIZE * 2 + 1; ++x) {
       for (let y = 0; y < this._SIZE * 2 + 1; ++y) {
-        const id = Helper.generateId(2);
+        const id = Helper.generateUniqueId(2, this._ids);
+        this._ids.push(id);
 
         let config;
         const index = `${(y - this._SIZE).toString()}/${(
