@@ -12,7 +12,6 @@ import {
   IUpdateMessage,
   IShot,
   IExplosion,
-  ILocations,
   ILocationUsers,
 } from '../models/models';
 
@@ -26,9 +25,9 @@ import Game from '../services/game/game';
 import Helper from './utils/helper';
 
 @WebSocketGateway({
-  cors: {
+  /* cors: {
     credentials: true, // TODO!!! For development!!!
-  },
+  }, */
   allowEIO3: true,
 })
 export default class Gateway
