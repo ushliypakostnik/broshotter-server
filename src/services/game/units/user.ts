@@ -2,10 +2,10 @@
 import { Injectable } from '@nestjs/common';
 
 // Types
-import type { IUser } from '../../../models/models';
+import type { IUnit } from '../../../models/api';
 
 @Injectable()
-export default class User implements IUser {
+export default class User implements IUnit {
   public name!: string;
   public health: number;
   public positionX: number;

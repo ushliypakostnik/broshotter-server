@@ -13,10 +13,10 @@ import {
   IShot,
   IExplosion,
   ILocationUsers,
-} from '../models/models';
+} from '../models/api';
 
 // Constants
-import { Messages } from '../models/models';
+import { Messages } from '../models/api';
 
 // Services
 import Game from '../services/game/game';
@@ -25,9 +25,9 @@ import Game from '../services/game/game';
 import Helper from './utils/helper';
 
 @WebSocketGateway({
-  /* cors: {
+  cors: {
     credentials: true, // TODO!!! For development!!!
-  }, */
+  },
   allowEIO3: true,
 })
 export default class Gateway
@@ -69,6 +69,7 @@ export default class Gateway
           );
       });
 
+      // Удаление пользователей
       ++this._counter;
       if (this._counter > 4000) {
         this.game.checkUsers();
@@ -173,8 +174,6 @@ export default class Gateway
   async relocation(client, message: IUpdateMessage): Promise<void> {
     console.log('Gateway relocation!!!', message);
     this.game.onRelocation(message);
-    this.server
-      .to(message.location)
-      .emit(Messages.onRelocation, message.id);
+    this.server.to(message.location).emit(Messages.onRelocation, message.id);
   }
 }

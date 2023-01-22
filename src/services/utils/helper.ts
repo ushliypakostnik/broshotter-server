@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 
 // Types
-import { IPosition } from '../../models/models';
+import { IPosition } from '../../models/api';
 
 @Injectable()
 export default class Helper {
@@ -27,6 +27,10 @@ export default class Helper {
 
   static degreesToRadians(degrees: number): number {
     return degrees * (Math.PI / 180);
+  }
+
+  static damping(delta: number): number {
+    return Math.exp(-3 * delta) - 1;
   }
 
   public getRandomPosition(

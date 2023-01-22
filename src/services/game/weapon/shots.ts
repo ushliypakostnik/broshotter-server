@@ -5,7 +5,11 @@ import { Injectable } from '@nestjs/common';
 import math3d from 'math3d';
 
 // Types
-import { IShot } from '../../../models/models';
+import type { ISelf } from '../../../models/modules';
+import type { IShot } from '../../../models/api';
+
+// Utils
+import Helper from '../../utils/helper';
 
 @Injectable()
 export default class Shots {
@@ -13,7 +17,6 @@ export default class Shots {
   public counter = 0;
 
   private _item!: IShot;
-  private _timeout!: ReturnType<typeof setTimeout>;
   private _math: math3d;
   private _v1!: math3d.Vector3;
   private _v2!: math3d.Vector3;
@@ -24,13 +27,6 @@ export default class Shots {
 
   constructor() {
     this.list = [];
-
-    // Запускаем постоянные обновления положения выстрелов
-    this._timeout = setInterval(
-      () => this._upgrade(),
-      process.env.TIMEOUT as unknown as number,
-    );
-
     this._math = require('math3d');
     this._center = new this._math.Vector3(0, 0, 0);
   }
@@ -59,7 +55,7 @@ export default class Shots {
     // console.log('Shots onUnshotExplosion()!', message, this.list.length);
   }
 
-  private _upgrade() {
+  public animate(self: ISelf) {
     this.list.forEach((shot) => {
       this._v1 = new this._math.Vector3(
         shot.positionX,
@@ -72,13 +68,17 @@ export default class Shots {
         shot.directionZ,
       );
       this._v3 = new this._math.Vector3(shot.startX, shot.startY, shot.startZ);
+
       // Гравитация и небольшое снижение скорости
+
       this._distance = this._v1.distanceTo(this._v3);
-      if (this._distance > 10) shot.gravity -= 0.0025;
+      if (this._distance > 10) shot.gravity -= 0.00005;
 
-      this._v2 = this._v2.mulScalar(0.95);
+      this._v2 = this._v2.mulScalar(
+        1 - Math.abs(Helper.damping(self.events.delta)),
+      );
 
-      this._v4 = this._v1.add(this._v2);
+      this._v4 = this._v1.add(this._v2.mulScalar(0.1));
       shot.positionX = this._v4.x;
       shot.positionY = this._v4.y + shot.gravity;
       shot.positionZ = this._v4.z;

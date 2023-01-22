@@ -10,7 +10,7 @@ import {
   IUpdateMessage,
   IOnExplosion,
   IExplosion,
-} from '../../../models/models';
+} from '../../../models/api';
 
 // Modules
 import User from './user';
@@ -32,6 +32,7 @@ export default class Users {
   private _v2!: math3d.Vector3;
 
   private _START = {
+    health: 100,
     name: null,
     positionX: 0,
     positionY: 30,
@@ -61,10 +62,15 @@ export default class Users {
   private _getIds() {
     return this.listBack.map((player) => {
       return player.id;
-    })
+    });
   }
 
   // Gameplay
+
+  public checkPlayerId(id: string): boolean {
+    // console.log('Users checkPlayerId: ', id);
+    return !!this.list.find((player) => player.id === id);
+  }
 
   public setNewPlayer(): User {
     this._strind = Helper.generateUniqueId(4, this._getIds());
@@ -89,11 +95,6 @@ export default class Users {
     return this._item;
   }
 
-  public checkPlayerId(id: string): boolean {
-    // console.log('Users checkPlayerId: ', id);
-    return !!this.list.find((player) => player.id === id);
-  }
-
   public updatePlayer(id: string): User {
     // console.log('Users updatePlayer!');
     // this._item = this._getUserBackById(id);
@@ -112,12 +113,12 @@ export default class Users {
   public onEnter(message: IUpdateMessage): void {
     console.log('Users onEnter: ', message);
     this._item = this._getUserById(message.id as string);
-    try {
-      this._item.name = message.name as string;
-    } catch (error) {
+    if (this._item) this._item.name = message.name as string;
+    else {
       // Вот такая ситуация возможна только если сервер упал и перезапустился и мы "потеряли юзера"
-      // Поэтому пока не обрабатываем
-      console.log('Users onEnter ERROR: ', message, error);
+      console.log('Users onEnter ERROR!!!');
+      this._item = this.setNewPlayer();
+      this._item.name = message.name as string;
     }
   }
 
@@ -128,6 +129,8 @@ export default class Users {
       ...this._item,
       ...this._START,
     };
+    this.list = this.list.filter((user) => user.id !== (message.id as string));
+    this.list.push(this._item);
   }
 
   public onExplosion(message: IExplosion): IOnExplosion {
@@ -203,7 +206,7 @@ export default class Users {
           if (property === 'time') {
             this._item = this._getUserBackById(message.id as string);
             this._item.time = message[property] as number;
-            this._item.play =  (this._item.time -  this._item.unix) / 60;
+            this._item.play = (this._item.time - this._item.unix) / 60;
           } else this._item[property] = message[property];
         }
       }

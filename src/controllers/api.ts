@@ -2,11 +2,11 @@
 import { Controller, Get, Param, HttpCode, Inject } from '@nestjs/common';
 
 // Types
-import type { ILocation, ILocationUsers, IUserBack } from '../models/models';
+import type { ILocation, ILocationUsers, IUserBack } from '../models/api';
 
 // Modules
 import Gateway from '../services/gateway';
-import User from '../services/game/users/user';
+import User from '../services/game/units/user';
 
 @Controller()
 export default class Api {
@@ -29,8 +29,8 @@ export default class Api {
     console.log('Controller Get getStats!!!');
     return {
       users: this._gateway.game.users.counter,
-      shots: this._gateway.game.shots.counter,
-      now: this._gateway.game.shots.list.length,
+      shots: this._gateway.game.weapon.shots.counter,
+      now: this._gateway.game.weapon.shots.list.length,
       list: this._gateway.game.users.listBack,
     };
   }

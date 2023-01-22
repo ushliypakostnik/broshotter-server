@@ -1,47 +1,75 @@
 // Nest
 import { Injectable } from '@nestjs/common';
 
+// Three
+import * as THREE from 'three';
+
 // Types
+import type { ISelf } from '../../models/modules';
 import type {
-  IGameUpdates,
   IUpdateMessage,
   IShot,
   IOnExplosion,
   IExplosion,
-  IUser, IUserBack,
-} from '../../models/models';
+  IUnit,
+  IGameUpdates,
+} from '../../models/api';
 
 // Modules
+import Events from '../utils/events';
 import World from './world/world';
-import Users from './users/users';
-import Shots from './weapon/shots';
-import Helper from '../utils/helper';
+import Users from './units/users';
+import Weapon from './weapon/weapon';
+import NPC from './units/npc';
 
 @Injectable()
 export default class Game {
-  public world!: World;
-  public users!: Users;
-  public shots!: Shots;
+  public world: World;
+  public users: Users;
+  public weapon: Weapon;
+  public npc: NPC;
 
-  private _user!: IUser;
-  private _usersOnLocation: string[];
+  private _events: Events;
+  private _self: ISelf;
+
+  private _user!: IUnit;
 
   private _id!: string;
-  private _message!: IUpdateMessage;
 
   constructor() {
+    const EventEmitter = require('events');
+    this._events = new Events();
+    this._self = {
+      emiiter: new EventEmitter(),
+      events: this._events,
+      octrees: {},
+      octrees2: {},
+      scene: new THREE.Scene(),
+    };
+
     this.world = new World();
     this.users = new Users();
-    this.shots = new Shots();
+    this.weapon = new Weapon();
+    this.npc = new NPC();
+
+    this.world.init(this._self);
+
+    this._animate();
   }
 
   public getGameUpdates(location: string): IGameUpdates {
-    this._usersOnLocation = this.world.locations[location].users;
     return {
       users: this.users.list.filter((user) =>
-        this._usersOnLocation.includes(user.id),
+        this.world.locations[location].users.includes(user.id),
       ),
-      shots: this.shots.list.filter((shot) => shot.location === location),
+      weapon: {
+        shots: this.weapon.shots.list.filter(
+          (shot) => shot.location === location,
+        ),
+      },
+      npc: {
+        zombies: this.npc.getState(this.world.locations[location].npc).zombies,
+      },
     };
   }
 
@@ -77,6 +105,7 @@ export default class Game {
 
   public onReenter(message: IUpdateMessage): void {
     this.users.onReenter(message);
+    this.world.onReenter(message);
   }
 
   public onUpdateToServer(message: IUpdateMessage): void {
@@ -84,15 +113,15 @@ export default class Game {
   }
 
   public onShot(message: IShot): IShot {
-    return this.shots.onShot(message);
+    return this.weapon.onShot(message);
   }
 
   public onUnshot(message: number): string {
-    return this.shots.onUnshot(message);
+    return this.weapon.onUnshot(message);
   }
 
   public onUnshotExplosion(message: number): void {
-    return this.shots.onUnshotExplosion(message);
+    return this.weapon.onUnshotExplosion(message);
   }
 
   public onExplosion(message: IExplosion): IOnExplosion {
@@ -107,4 +136,15 @@ export default class Game {
     this.users.onRelocation(message);
     this.world.onRelocation(message);
   }
+
+  private _animate(): void {
+    this._events.animate();
+    this.npc.animate(this._self);
+    this.weapon.animate(this._self);
+
+    setTimeout(() => {
+      this._animate();
+    }, 0);
+  }
+
 }

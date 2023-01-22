@@ -9,10 +9,12 @@ import type {
   IPosition,
   ITree,
   IUpdateMessage,
-} from '../../../models/models';
+} from '../../../models/api';
+import type { ISelf } from '../../../models/modules';
 
 // Constants
 import { defaultLocation, MAP } from './config';
+import { EmitterEvents } from '../../../models/modules';
 
 // Utils
 import Helper from '../../utils/helper';
@@ -85,15 +87,41 @@ export default class World {
         this.locations[id] = {
           ...location,
           users: [],
+          npc: [],
         };
         this.design[id] = {
           ...location,
           ...config,
           trees: this._trees,
         };
-        this.array.push({ ...location, users: [] });
+        this.array.push({ ...location, users: [], npc: [] });
       }
     }
+  }
+
+  public init(self: ISelf) {
+    // addNPC event subscribe
+    self.emiiter.on(EmitterEvents.addNPC, (npc) => {
+      // console.log('World addNPC', npc);
+      // TODO // TODO // TODO // TODO // TODO
+      // TODO: Пока всех выставляем на -2 / -2
+      this._id = this._getLocationIdByCoords(-2, -2);
+      this._addNPCOnLocation(npc.id, this._id);
+    });
+  }
+
+  public onReenter(message: IUpdateMessage): void {
+    this._id = this._getLocationIdByUserId(message.id as string);
+    this._removePlayerFromLocation(
+      message.id as string,
+      this._id,
+    );
+    // TODO // TODO // TODO // TODO // TODO
+    // TODO: Пока всех выставляем на -2 / -2
+    this._addPlayerOnLocation(
+      message.id as string,
+      this._getLocationIdByCoords(-2, -2),
+    );
   }
 
   private _getLocationIdByCoords(x: number, y: number): string {
@@ -126,6 +154,13 @@ export default class World {
       .users.push(userId);
   }
 
+  private _addNPCOnLocation(NPCId: string, locationId: string): void {
+    this.locations[locationId].npc.push(NPCId);
+    this.array
+      .find((location: ILocationUsers) => location.id === locationId)
+      .npc.push(NPCId);
+  }
+
   private _removePlayerFromLocation(userId: string, locationId: string): void {
     this.locations[locationId].users = this.locations[locationId].users.filter(
       (user) => user !== userId,
@@ -136,6 +171,7 @@ export default class World {
 
   public setNewPlayer(id: string): string {
     console.log('World setNewPlayer', id);
+    // TODO // TODO // TODO // TODO // TODO
     // TODO: Пока всех выставляем на -2 / -2
     this._id = this._getLocationIdByCoords(-2, -2);
     this._addPlayerOnLocation(id, this._id);

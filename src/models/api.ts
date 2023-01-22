@@ -1,5 +1,7 @@
 // Websockets messages
 export enum Messages {
+  // Players
+
   onConnect = 'onConnect', // На присоединение пользователя
   onOnConnect = 'onOnConnect', // Ответ клиента серверу на соединение
   setNewPlayer = 'setNewPlayer', // Установить нового игрока
@@ -54,7 +56,7 @@ export interface IOnExplosion {
 }
 
 // Игрок
-export interface IUser extends IMoveObject {
+export interface IUnit extends IMoveObject {
   id: string
   name: string;
   animation: string;
@@ -78,16 +80,26 @@ export interface IUpdateMessage {
 }
 
 // Обновления игры
+
+export interface IWeaponModule {
+  [key: string]: IShot[];
+}
+
+export interface IModule {
+  [key: string]: IUnit[];
+}
+
 export interface IGameUpdates {
-  users: IUser[],
-  shots: IShot[],
+  users: IUnit[];
+  weapon: IWeaponModule;
+  npc: IModule,
 }
 
 // Мир
 export interface IPosition {
   x: number;
   z: number;
-};
+}
 
 export interface ITree {
   x: number;
@@ -106,6 +118,7 @@ export interface ILocation {
 
 export interface ILocationUsers extends ILocation {
   users: string[];
+  npc: string[];
 }
 
 export interface ILocationWorld extends ILocation {
@@ -120,4 +133,9 @@ export interface ILocations {
 
 export interface ILocationsWorld {
   [key: string]: ILocationWorld;
+}
+
+export interface IUserUpdate {
+  player: IUpdateMessage;
+  npc: IUnit[],
 }
