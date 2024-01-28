@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 // Nest
 import { Injectable } from '@nestjs/common';
 
@@ -17,6 +19,7 @@ import { defaultLocation, MAP } from './config';
 import { EmitterEvents } from '../../../models/modules';
 
 // Utils
+import Octree from '../../math/octree';
 import Helper from '../../utils/helper';
 
 @Injectable()
@@ -34,6 +37,8 @@ export default class World {
   private _trees: ITree[];
   private _SIZE = 3; // количество "слоев" вокруг центральной локации
   private _helper: Helper;
+  private _group: THREE.Group;
+  private _mesh: THREE.Mesh;
 
   private _id: string;
 
@@ -58,7 +63,7 @@ export default class World {
         this._trees = [];
         if (!(x === 0 && y === 0)) {
           this._positions = [];
-          const number = Helper.randomInteger(0, 20);
+          const number = Helper.randomInteger(3, 20);
           for (let n = 0; n < number; ++n) {
             this._position = this._helper.getUniqueRandomPosition(
               this._positions,
@@ -100,25 +105,41 @@ export default class World {
   }
 
   public init(self: ISelf) {
+    // Создаем основу для всех локаций - "первое" октодерево
+    // и пустые вторичные, "динамические" октодеревья для юнитов
+    this.array.forEach((location: ILocationUsers) => {
+      this._mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(
+          (process.env.SIZE as unknown as number) * 1.6,
+          1,
+          (process.env.SIZE as unknown as number) * 1.6,
+        ),
+        new THREE.MeshBasicMaterial(),
+      );
+      this._group = new THREE.Group();
+      this._group.add(this._mesh);
+      this._mesh.position.y = -1;
+      self.octrees[location.id] = new Octree();
+      self.octrees[location.id].fromGraphNode(this._group);
+    });
+
     // addNPC event subscribe
     self.emiiter.on(EmitterEvents.addNPC, (npc) => {
       // console.log('World addNPC', npc);
       // TODO // TODO // TODO // TODO // TODO
       // TODO: Пока всех выставляем на -2 / -2
       this._id = this._getLocationIdByCoords(-2, -2);
-      this._addNPCOnLocation(npc.id, this._id);
+      this._addNPCOnLocation(self, npc.id, this._id);
     });
   }
 
-  public onReenter(message: IUpdateMessage): void {
+  public onReenter(self: ISelf, message: IUpdateMessage): void {
     this._id = this._getLocationIdByUserId(message.id as string);
-    this._removePlayerFromLocation(
-      message.id as string,
-      this._id,
-    );
+    this._removePlayerFromLocation(message.id as string, this._id);
     // TODO // TODO // TODO // TODO // TODO
     // TODO: Пока всех выставляем на -2 / -2
     this._addPlayerOnLocation(
+      self,
       message.id as string,
       this._getLocationIdByCoords(-2, -2),
     );
@@ -147,18 +168,20 @@ export default class World {
     );
   }
 
-  private _addPlayerOnLocation(userId: string, locationId: string): void {
+  private _addPlayerOnLocation(self: ISelf, userId: string, locationId: string): void {
     this.locations[locationId].users.push(userId);
     this.array
       .find((location: ILocationUsers) => location.id === locationId)
       .users.push(userId);
+    self.units[userId] = locationId;
   }
 
-  private _addNPCOnLocation(NPCId: string, locationId: string): void {
+  private _addNPCOnLocation(self: ISelf, NPCId: string, locationId: string): void {
     this.locations[locationId].npc.push(NPCId);
     this.array
       .find((location: ILocationUsers) => location.id === locationId)
       .npc.push(NPCId);
+    self.units[NPCId] = locationId;
   }
 
   private _removePlayerFromLocation(userId: string, locationId: string): void {
@@ -166,15 +189,23 @@ export default class World {
       (user) => user !== userId,
     );
     this._item = this.array.find((location) => location.id === locationId);
-    this._item.users = this._item.users.filter((user) => user !== userId);
+    this._item.users = this._item.users.filter((user: string) => user !== userId);
   }
 
-  public setNewPlayer(id: string): string {
+  private _removeNPCFromLocation(NPCId: string, locationId: string): void {
+    this.locations[locationId].npc = this.locations[locationId].npc.filter(
+      (npc) => npc !== NPCId,
+    );
+    this._item = this.array.find((location) => location.id === locationId);
+    this._item.npc = this._item.npc.filter((npc: string) => npc !== NPCId);
+  }
+
+  public setNewPlayer(self: ISelf, id: string): string {
     console.log('World setNewPlayer', id);
     // TODO // TODO // TODO // TODO // TODO
     // TODO: Пока всех выставляем на -2 / -2
     this._id = this._getLocationIdByCoords(-2, -2);
-    this._addPlayerOnLocation(id, this._id);
+    this._addPlayerOnLocation(self, id, this._id);
     return this._id;
   }
 
@@ -184,7 +215,7 @@ export default class World {
     return this._id;
   }
 
-  public onRelocation(message: IUpdateMessage): void {
+  public onRelocation(self: ISelf, message: IUpdateMessage): void {
     this._removePlayerFromLocation(
       message.id as string,
       message.location as string,
@@ -211,6 +242,7 @@ export default class World {
       this._y *= -1;
     }
     this._addPlayerOnLocation(
+      self,
       message.id as string,
       this._getLocationIdByCoords(this._x, this._y),
     );

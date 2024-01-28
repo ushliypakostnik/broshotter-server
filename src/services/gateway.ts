@@ -60,14 +60,19 @@ export default class Gateway
       this._locations = this.game.world.array.filter(
         (location) => location.users.length > 0,
       );
-      this._locations.forEach((location: ILocationUsers) => {
-        this.server
-          .to(location.id)
-          .emit(
-            Messages.updateToClients,
-            this.game.getGameUpdates(location.id),
-          );
-      });
+      this._locations
+        .filter(
+          (location: ILocationUsers) =>
+            this.game.world.locations[location.id].users.length > 0,
+        )
+        .forEach((location: ILocationUsers) => {
+          this.server
+            .to(location.id)
+            .emit(
+              Messages.updateToClients,
+              this.game.getGameUpdates(location.id),
+            );
+        });
 
       // Удаление пользователей
       ++this._counter;

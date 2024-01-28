@@ -1,6 +1,3 @@
-// Types
-// import type { ISelf } from '@/models/modules';
-
 // Modules
 import Zombies from './npc/zombies';
 import { IModule } from '../../../models/api';
@@ -15,15 +12,9 @@ export default class NPC {
     this.zombies = new Zombies();
   }
 
-  public init(): void {
-    this.zombies.init();
-  }
-
-  public getState(ids: string[]): IModule {
+  public getIds(ids: string[]): IModule {
     return {
-      zombies: this.zombies.list.filter(
-        (npc) => ids.includes(npc.id),
-      ),
+      zombies: this.zombies.list.filter((npc) => ids.includes(npc.id)),
     };
   }
 

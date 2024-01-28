@@ -1,15 +1,16 @@
+import * as THREE from 'three';
+
 // Nest
 import { Injectable } from '@nestjs/common';
 
-// Math
-import math3d from 'math3d';
-
 // Types
+import type { ISelf } from '../../../models/modules';
 import {
   IUserBack,
   IUpdateMessage,
   IOnExplosion,
   IExplosion,
+  IUnitInfo,
 } from '../../../models/api';
 
 // Modules
@@ -22,14 +23,17 @@ import Helper from '../../utils/helper';
 export default class Users {
   public list: User[];
   public listBack: IUserBack[];
+  public listInfo: IUnitInfo[];
   public counter = 0;
 
   private _updates!: IUpdateMessage[];
-  private _item!: User | IUserBack;
+  private _item!: User;
+  private _itemBack!: IUserBack;
+  private _itemInfo!: IUnitInfo;
   private _strind!: string;
-  private _math: math3d;
-  private _v1!: math3d.Vector3;
-  private _v2!: math3d.Vector3;
+  private _v1!: THREE.Vector3;
+  private _v2!: THREE.Vector3;
+  private _mesh!: THREE.Mesh;
 
   private _START = {
     health: 100,
@@ -40,19 +44,23 @@ export default class Users {
     directionX: -0.7,
     directionY: 0,
     directionZ: 0.7,
+    animation: 'jump',
   };
 
   constructor() {
     this.list = [];
     this.listBack = [];
-
-    this._math = require('math3d');
+    this.listInfo = [];
   }
 
   // Utils
 
   private _getUserById(id: string): User {
     return this.list.find((player) => player.id === id);
+  }
+
+  private _getUserInfoById(id: string): IUnitInfo {
+    return this.listInfo.find((player) => player.id === id);
   }
 
   private _getUserBackById(id: string): IUserBack {
@@ -72,7 +80,7 @@ export default class Users {
     return !!this.list.find((player) => player.id === id);
   }
 
-  public setNewPlayer(): User {
+  public setNewPlayer(self: ISelf): User {
     this._strind = Helper.generateUniqueId(4, this._getIds());
     this._item = new User(this._strind);
     this._item = {
@@ -91,15 +99,23 @@ export default class Users {
       counter: ++this.counter,
     });
 
+    // Добавляем коробку
+    this._mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 1.8, 0.75),
+      new THREE.MeshBasicMaterial(),
+    );
+    this.listInfo.push({
+      id: this._item.id,
+      mesh: this._mesh.uuid,
+      animation: this._item.animation,
+    });
+    self.scene[this._item.id] = this._mesh;
+
     console.log('Users setNewPlayer', this._item);
     return this._item;
   }
 
   public updatePlayer(id: string): User {
-    // console.log('Users updatePlayer!');
-    // this._item = this._getUserBackById(id);
-    // this._item.last = `${new Date()}`;
-
     this._item = this._getUserById(id);
     console.log('Users updatePlayer: ', this._item);
     return this._item;
@@ -108,21 +124,22 @@ export default class Users {
   private _removePlayer(id: string): void {
     this.list = this.list.filter((player) => player.id !== id);
     this.listBack = this.listBack.filter((player) => player.id !== id);
+    this.listInfo = this.listInfo.filter((player) => player.id !== id);
   }
 
-  public onEnter(message: IUpdateMessage): void {
+  public onEnter(self: ISelf, message: IUpdateMessage): void {
     console.log('Users onEnter: ', message);
     this._item = this._getUserById(message.id as string);
     if (this._item) this._item.name = message.name as string;
     else {
       // Вот такая ситуация возможна только если сервер упал и перезапустился и мы "потеряли юзера"
       console.log('Users onEnter ERROR!!!');
-      this._item = this.setNewPlayer();
+      this._item = this.setNewPlayer(self);
       this._item.name = message.name as string;
     }
   }
 
-  public onReenter(message: IUpdateMessage): void {
+  public onReenter(self: ISelf, message: IUpdateMessage): void {
     console.log('Users onReenter: ', message);
     this._item = this._getUserById(message.id as string);
     this._item = {
@@ -131,18 +148,36 @@ export default class Users {
     };
     this.list = this.list.filter((user) => user.id !== (message.id as string));
     this.list.push(this._item);
+
+    this._itemInfo = this._getUserInfoById(message.id as string);
+    this._itemInfo = {
+      id: this._itemInfo.id,
+      mesh: this._itemInfo.mesh,
+      animation: this._START.animation,
+    };
+    this._mesh = self.scene[this._item.id];
+    if (this._mesh)
+      this._mesh.position.set(
+        this._START.positionX,
+        this._START.positionY - 0.6,
+        this._START.positionZ,
+      );
+    this.listInfo = this.listInfo.filter(
+      (user) => user.id !== (message.id as string),
+    );
+    this.listInfo.push(this._itemInfo);
   }
 
   public onExplosion(message: IExplosion): IOnExplosion {
     // console.log('Users onExplosion!!!!!!!!!!!!!: ', message);
     this._updates = [];
     this.list.forEach((player: User) => {
-      this._v1 = new this._math.Vector3(
+      this._v1 = new THREE.Vector3(
         message.positionX,
         message.positionY,
         message.positionZ,
       );
-      this._v2 = new this._math.Vector3(
+      this._v2 = new THREE.Vector3(
         player.positionX,
         player.positionY,
         player.positionZ,
@@ -178,7 +213,7 @@ export default class Users {
     };
   }
 
-  public onRelocation(message: IUpdateMessage): void {
+  public onRelocation(self: ISelf, message: IUpdateMessage): void {
     this._item = this._getUserById(message.id as string);
 
     if (message.direction === 'right' || message.direction === 'left')
@@ -186,31 +221,98 @@ export default class Users {
     else if (message.direction === 'top' || message.direction === 'bottom')
       this._item.positionZ *= -1;
 
-    this._v1 = new this._math.Vector3(
+    this._v1 = new THREE.Vector3(
       this._item.positionX,
       0,
       this._item.positionZ,
-    ).mulScalar(0.85);
+    ).multiplyScalar(0.85);
 
     this._item.positionX = this._v1.x;
     this._item.positionY = 0;
     this._item.positionZ = this._v1.z;
+
+    this._mesh = self.scene[this._item.id];
+    if (this._mesh) {
+      if (this._item.animation.includes('hide'))
+        this._mesh.position.set(
+          this._v1.x,
+          -0.4,
+          this._v1.z,
+        );
+      else
+        this._mesh.position.set(
+          this._v1.x,
+          -0.6,
+          this._v1.z,
+        );
+    }
   }
 
-  public onUpdateToServer(message: IUpdateMessage): void {
+  // Пришли обновления от клиента
+  public onUpdateToServer(self: ISelf, message: IUpdateMessage): void {
     // console.log('Users onUpdateToServer: ', message);
     this._item = this._getUserById(message.id as string);
     if (this._item) {
       for (let property in message) {
         if (property != 'id') {
           if (property === 'time') {
-            this._item = this._getUserBackById(message.id as string);
-            this._item.time = message[property] as number;
-            this._item.play = (this._item.time - this._item.unix) / 60;
-          } else this._item[property] = message[property];
+            this._itemBack = this._getUserBackById(message.id as string);
+            this._itemBack.time = message[property] as number;
+            this._itemBack.play =
+              (this._itemBack.time - this._itemBack.unix) / 60;
+          } else {
+            if (
+              property === 'animation' &&
+              message[property] &&
+              this._item.animation !== message[property]
+            ) {
+              /* console.log(
+                'Users onUpdateToServer АНИМАЦИЯ!!!!',
+                message[property],
+              ); */
+
+              // Если сменился режим скрытности - изменяем размер коробки
+              if (
+                ((message[property] as string).includes('hide') &&
+                  !this._item.animation.includes('hide')) ||
+                (!(message[property] as string).includes('hide') &&
+                  this._item.animation.includes('hide'))
+              ) {
+                this._itemInfo = this._getUserInfoById(message.id as string);
+                this._mesh = self.scene[this._itemInfo.id];
+                if (this._mesh) {
+                  if ((message[property] as string).includes('hide'))
+                    this._mesh.scale.set(1, 0.6, 1);
+                  else this._mesh.scale.set(1, 1, 1);
+                }
+              }
+            }
+
+            this._item[property] = message[property];
+          }
         }
       }
     }
+  }
+
+  public animate(self: ISelf): void {
+    this.list.forEach((user) => {
+      this._mesh = self.scene[user.id];
+      if (this._mesh) {
+        if (user.animation.includes('hide'))
+          this._mesh.position.set(
+            user.positionX,
+            user.positionY - 0.4,
+            user.positionZ,
+          );
+        else
+          this._mesh.position.set(
+            user.positionX,
+            user.positionY - 0.6,
+            user.positionZ,
+          );
+      }
+    });
   }
 
   public checkUsers(): void {

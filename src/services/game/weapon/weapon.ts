@@ -26,8 +26,4 @@ export default class Weapon {
   public onUnshotExplosion(message: number): void {
     this.shots.onUnshotExplosion(message);
   }
-
-  public animate(self: ISelf): void {
-    this.shots.animate(self);
-  }
 }

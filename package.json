@@ -29,7 +29,6 @@
     "@nestjs/websockets": "^9.2.1",
     "crypto": "^1.0.1",
     "events": "^3.3.0",
-    "math3d": "^0.2.2",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",

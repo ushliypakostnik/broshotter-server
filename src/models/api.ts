@@ -25,7 +25,7 @@ export enum Messages {
   onRelocation = 'onRelocation', // На переход на другую локацию
 }
 
-// Движущийся объект принадлежащий игроку (выстрел) или сам игрок
+// Движущийся объект
 export interface IMoveObject {
   positionX: number;
   positionY: number;
@@ -43,7 +43,6 @@ export interface IShot extends IMoveObject {
   startX: number;
   startY: number;
   startZ: number;
-  gravity: number;
 }
 
 export interface IExplosion extends IShot {
@@ -60,6 +59,7 @@ export interface IUnit extends IMoveObject {
   id: string
   name: string;
   animation: string;
+  health: number;
   isFire: boolean;
   isOnHit: boolean;
 }
@@ -138,4 +138,14 @@ export interface ILocationsWorld {
 export interface IUserUpdate {
   player: IUpdateMessage;
   npc: IUnit[],
+}
+
+export interface IUnitInfo {
+  id: string;
+  mesh: string;
+  animation: string;
+}
+
+export interface IUnitsByLocations {
+  [key: string]: IUnitInfo[];
 }
