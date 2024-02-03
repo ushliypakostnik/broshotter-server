@@ -38,8 +38,10 @@ export interface IUnitCollider {
   isRun: boolean;
   isJump: boolean;
   isJump2: boolean;
-  timerJump: number;
+  isBend: boolean;
   bend: number;
+  timer: number;
+  timerNo: number;
   octree: Octree;
 }
 

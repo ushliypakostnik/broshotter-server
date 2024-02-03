@@ -28,9 +28,12 @@ export default class Shots {
 
   public onUnshot(message: number): string {
     this._item = this.list.find((shot) => shot.id === message);
-    this.list = this.list.filter((shot) => shot.id !== message);
-    // console.log('Shots onUnshot()!', message, this.list.length);
-    return this._item.location;
+    // console.log('Shots onUnshot()!', message, this._item, this.list.length);
+    if (this._item) {
+      this.list = this.list.filter((shot) => shot.id !== message);
+      return this._item.location;
+    }
+    return '';
   }
 
   public onUnshotExplosion(message: number): void {

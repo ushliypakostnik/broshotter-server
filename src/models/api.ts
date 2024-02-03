@@ -43,6 +43,7 @@ export interface IShot extends IMoveObject {
   startX: number;
   startY: number;
   startZ: number;
+  time: number;
 }
 
 export interface IExplosion extends IShot {
@@ -51,7 +52,10 @@ export interface IExplosion extends IShot {
 
 export interface IOnExplosion {
   message: IExplosion;
-  updates: IUpdateMessage[],
+  updates: {
+    users: IUpdateMessage[];
+    npc: IUpdateNPCMessage;
+  },
 }
 
 // Игрок
@@ -62,6 +66,8 @@ export interface IUnit extends IMoveObject {
   health: number;
   isFire: boolean;
   isOnHit: boolean;
+  isDead: boolean;
+  isSleep: boolean;
 }
 
 // Для бека
@@ -77,6 +83,11 @@ export interface IUserBack {
 // Обновления игрока
 export interface IUpdateMessage {
   [key: string]: number | string | boolean | null;
+}
+
+// Обновления NPC
+export interface IUpdateNPCMessage {
+  [key: string]: IUpdateMessage[];
 }
 
 // Обновления игры
@@ -116,7 +127,7 @@ export interface ILocation {
   y: number;
 }
 
-export interface ILocationUsers extends ILocation {
+export interface ILocationUnits extends ILocation {
   users: string[];
   npc: string[];
 }
@@ -128,7 +139,7 @@ export interface ILocationWorld extends ILocation {
 }
 
 export interface ILocations {
-  [key: string]: ILocationUsers;
+  [key: string]: ILocationUnits;
 }
 
 export interface ILocationsWorld {
@@ -148,4 +159,12 @@ export interface IUnitInfo {
 
 export interface IUnitsByLocations {
   [key: string]: IUnitInfo[];
+}
+
+export interface IMapUnit {
+  id: string;
+  type: string;
+  x: number;
+  y: number;
+  isDead: boolean;
 }

@@ -2,31 +2,35 @@
 import { Controller, Get, Param, HttpCode, Inject } from '@nestjs/common';
 
 // Types
-import type { ILocation, ILocationUsers, IUserBack } from '../models/api';
+import type { ILocation, IMapUnit, IUserBack } from '../models/api';
 
 // Modules
 import Gateway from '../services/gateway';
-import User from '../services/game/units/user';
 
 @Controller()
 export default class Api {
   @Inject(Gateway)
   private _gateway: Gateway;
 
-  @Get('/map')
+  @Get('/map/:id')
   @HttpCode(200)
-  public getMap(): { locations: ILocationUsers[]; users: User[] } {
-    console.log('Controller Get getMap!!!');
+  public getMap(@Param() params): { locations: ILocation[], units: IMapUnit[] } {
     return {
-      locations: this._gateway.game.world.array,
-      users: this._gateway.game.users.list,
-    };
+      locations: this._gateway.game.world.array.map((location) => {
+       return {
+          id: location.id,
+          x: location.x,
+          y: location.y,
+        };
+      }),
+      units: this._gateway.game.getUnitsByLocationsId(params.id),
+    }
   }
 
   @Get('/stats')
   @HttpCode(200)
   public getStats(): { users: number; shots: number; now: number; list: IUserBack[] } {
-    console.log('Controller Get getStats!!!');
+    // console.log('Controller Get getStats!!!');
     return {
       users: this._gateway.game.users.counter,
       shots: this._gateway.game.weapon.shots.counter,
@@ -38,7 +42,7 @@ export default class Api {
   @Get('/locations/:id')
   @HttpCode(200)
   public getLocation(@Param() params): ILocation {
-    console.log('Controller Get getLocation!!! ', params);
+    // console.log('Controller Get getLocation!!! ', params);
     return this._gateway.game.world.design[params.id];
   }
 }

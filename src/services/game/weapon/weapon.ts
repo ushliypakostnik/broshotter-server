@@ -1,6 +1,4 @@
 // Types
-// @ts-ignore
-import type { ISelf } from '../../../models/modules';
 import type { IShot } from '../../../models/api';
 
 // Modules

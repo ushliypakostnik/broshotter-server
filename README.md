@@ -16,11 +16,7 @@ $ npm install
 $ npm run start
 ```
 
-<<<<<<< HEAD
-## GLTFLoader
-=======
 Внимание, в @/src/services/gateaway.ts:
->>>>>>> main
 
 Для development-режима:
 

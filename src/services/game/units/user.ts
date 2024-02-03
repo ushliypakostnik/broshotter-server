@@ -18,6 +18,8 @@ export default class User implements IUnit {
   public animation: string;
   public isFire: boolean;
   public isOnHit: boolean;
+  public isDead: boolean;
+  public isSleep: boolean;
 
   constructor(
     readonly id: string

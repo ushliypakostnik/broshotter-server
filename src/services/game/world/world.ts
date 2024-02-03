@@ -7,7 +7,7 @@ import { Injectable } from '@nestjs/common';
 import type {
   ILocations,
   ILocationsWorld,
-  ILocationUsers,
+  ILocationUnits,
   IPosition,
   ITree,
   IUpdateMessage,
@@ -26,21 +26,23 @@ import Helper from '../../utils/helper';
 export default class World {
   public locations: ILocations;
   public design: ILocationsWorld;
-  public array: ILocationUsers[];
+  public array: ILocationUnits[];
 
   private _ids: string[];
-  private _item: ILocationUsers;
+  private _item: ILocationUnits;
   private _x: number;
   private _y: number;
   private _positions: IPosition[];
   private _position: IPosition;
   private _trees: ITree[];
-  private _SIZE = 3; // количество "слоев" вокруг центральной локации
+  private _SIZE = Number(process.env.WORLD); // количество "слоев" вокруг центральной локации
   private _helper: Helper;
   private _group: THREE.Group;
   private _mesh: THREE.Mesh;
 
   private _id: string;
+  private _num1: number;
+  private _num2: number;
 
   constructor() {
     this._ids = [];
@@ -107,7 +109,7 @@ export default class World {
   public init(self: ISelf) {
     // Создаем основу для всех локаций - "первое" октодерево
     // и пустые вторичные, "динамические" октодеревья для юнитов
-    this.array.forEach((location: ILocationUsers) => {
+    this.array.forEach((location: ILocationUnits) => {
       this._mesh = new THREE.Mesh(
         new THREE.BoxGeometry(
           (process.env.SIZE as unknown as number) * 1.6,
@@ -126,9 +128,9 @@ export default class World {
     // addNPC event subscribe
     self.emiiter.on(EmitterEvents.addNPC, (npc) => {
       // console.log('World addNPC', npc);
-      // TODO // TODO // TODO // TODO // TODO
-      // TODO: Пока всех выставляем на -2 / -2
-      this._id = this._getLocationIdByCoords(-2, -2);
+      this._num1 = Helper.randomInteger(0, Number(process.env.WORLD)) * Helper.staticPlusOrMinus();
+      this._num2 = Helper.randomInteger(0, Number(process.env.WORLD)) * Helper.staticPlusOrMinus();
+      this._id = this._getLocationIdByCoords(this._num1, this._num2);
       this._addNPCOnLocation(self, npc.id, this._id);
     });
   }
@@ -136,24 +138,22 @@ export default class World {
   public onReenter(self: ISelf, message: IUpdateMessage): void {
     this._id = this._getLocationIdByUserId(message.id as string);
     this._removePlayerFromLocation(message.id as string, this._id);
-    // TODO // TODO // TODO // TODO // TODO
-    // TODO: Пока всех выставляем на -2 / -2
     this._addPlayerOnLocation(
       self,
       message.id as string,
-      this._getLocationIdByCoords(-2, -2),
+      this._getLocationIdByCoords(0, 0),
     );
   }
 
   private _getLocationIdByCoords(x: number, y: number): string {
     return this.array.find(
-      (location: ILocationUsers) => location.x === x && location.y === y,
+      (location: ILocationUnits) => location.x === x && location.y === y,
     ).id;
   }
 
   private _getCoordsIdByLocationId(id: string): { x: number; y: number } {
     this._item = this.array.find(
-      (location: ILocationUsers) => location.id === id,
+      (location: ILocationUnits) => location.id === id,
     );
     return {
       x: this._item.x,
@@ -163,7 +163,14 @@ export default class World {
 
   private _getLocationIdByUserId(id: string): string {
     return (
-      this.array.find((location: ILocationUsers) => location.users.includes(id))
+      this.array.find((location: ILocationUnits) => location.users.includes(id))
+        .id || ''
+    );
+  }
+
+  public getLocationIdByNPCId(id: string): string {
+    return (
+      this.array.find((location: ILocationUnits) => location.npc.includes(id))
         .id || ''
     );
   }
@@ -171,7 +178,7 @@ export default class World {
   private _addPlayerOnLocation(self: ISelf, userId: string, locationId: string): void {
     this.locations[locationId].users.push(userId);
     this.array
-      .find((location: ILocationUsers) => location.id === locationId)
+      .find((location: ILocationUnits) => location.id === locationId)
       .users.push(userId);
     self.units[userId] = locationId;
   }
@@ -179,7 +186,7 @@ export default class World {
   private _addNPCOnLocation(self: ISelf, NPCId: string, locationId: string): void {
     this.locations[locationId].npc.push(NPCId);
     this.array
-      .find((location: ILocationUsers) => location.id === locationId)
+      .find((location: ILocationUnits) => location.id === locationId)
       .npc.push(NPCId);
     self.units[NPCId] = locationId;
   }
@@ -204,7 +211,7 @@ export default class World {
     console.log('World setNewPlayer', id);
     // TODO // TODO // TODO // TODO // TODO
     // TODO: Пока всех выставляем на -2 / -2
-    this._id = this._getLocationIdByCoords(-2, -2);
+    this._id = this._getLocationIdByCoords(0, 0);
     this._addPlayerOnLocation(self, id, this._id);
     return this._id;
   }
@@ -247,5 +254,40 @@ export default class World {
       this._getLocationIdByCoords(this._x, this._y),
     );
     // console.log('World onRelocation', this.locations, this.array);
+  }
+
+  public onNPCRelocation(self: ISelf, message: IUpdateMessage): void {
+    // console.log('World onNPCRelocation: ', message, this.locations[`${message.location}`]);
+    this._removeNPCFromLocation(
+      message.id as string,
+      message.location as string,
+    );
+    const coords: { x: number; y: number } = this._getCoordsIdByLocationId(
+      message.location as string,
+    );
+    this._x = coords.x;
+    this._y = coords.y;
+    if (message.direction === 'right') this._x += 1;
+    else if (message.direction === 'left') this._x -= 1;
+    else if (message.direction === 'bottom') this._y += 1;
+    else if (message.direction === 'top') this._y -= 1;
+
+    if (Math.abs(this._x) > this._SIZE) {
+      if (this._x > 0) this._x -= 1;
+      else this._x += 1;
+      this._x *= -1;
+    }
+
+    if (Math.abs(this._y) > this._SIZE) {
+      if (this._y > 0) this._y -= 1;
+      else this._y += 1;
+      this._y *= -1;
+    }
+    this._addNPCOnLocation(
+      self,
+      message.id as string,
+      this._getLocationIdByCoords(this._x, this._y),
+    );
+    // console.log('World onNPCRelocation', message, this._x, this._y);
   }
 }

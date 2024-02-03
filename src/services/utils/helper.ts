@@ -17,7 +17,11 @@ export default class Helper {
     return Math.random() >= 0.5;
   }
 
-  public plusOrMinus(): number {
+  static staticPlusOrMinus(): number {
+    return Math.random() >= 0.5 ? 1 : -1;
+  }
+
+  private _plusOrMinus(): number {
     return Math.random() >= 0.5 ? 1 : -1;
   }
 
@@ -40,8 +44,8 @@ export default class Helper {
     isSafeCenter: boolean,
   ): IPosition {
     const safe = isSafeCenter ? 16 : 8;
-    const a = this.plusOrMinus();
-    const b = this.plusOrMinus();
+    const a = this._plusOrMinus();
+    const b = this._plusOrMinus();
     return {
       x: Math.round(centerX + Math.random() * a * radius) + safe * a,
       z: Math.round(centerZ + Math.random() * b * radius) + safe * b,

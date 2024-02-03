@@ -23,7 +23,10 @@ const getRandomGround = () => {
 };
 
 export const defaultLocation = {
-    name: 'Постапокалиптическая пустыня',
+    name: {
+      ru: 'Постапокалиптическая пустыня',
+      en: 'Post-apocalyptic desert',
+    },
     ground: getRandomGround(),
   };
 
@@ -31,15 +34,15 @@ export const defaultLocation = {
 export const MAP = {
   '-3/-3': {
     name: {
-      ru: 'Постапокалиптическая пустыня',
-      en: 'Post-apocalyptic desert',
+      ru: 'Командный пункт Выживших',
+      en: 'Survivor Command Post',
     },
     ground: 'sand1',
   },
   '-3/-2': {
     name: {
-      ru: 'Завод',
-      en: 'Factory',
+      ru: 'Постапокалиптическая пустыня',
+      en: 'Post-apocalyptic desert',
     },
     ground: 'sand1',
   },
@@ -87,15 +90,15 @@ export const MAP = {
   },
   '-2/-2': {
     name: {
-      ru: 'Командный пункт Выживших',
-      en: 'Survivor Command Post',
+      ru: 'Постапокалиптическая пустыня',
+      en: 'Post-apocalyptic desert',
     },
     ground: 'sand1',
   },
   '-2/-1': {
     name: {
-      ru: 'Разрушенный мост',
-      en: 'Broken bridge',
+      ru: 'Постапокалиптическая пустыня',
+      en: 'Post-apocalyptic desert',
     },
     ground: 'sand1',
   },
@@ -136,15 +139,15 @@ export const MAP = {
   },
   '-1/-2': {
     name: {
-      ru: 'Нефтебаза',
-      en: 'Oil depot',
+      ru: 'Постапокалиптическая пустыня',
+      en: 'Post-apocalyptic desert',
     },
     ground: 'sand2',
   },
   '-1/-1': {
     name: {
-      ru: 'Оранжереи',
-      en: 'Greenhouses',
+      ru: 'Постапокалиптическая пустыня',
+      en: 'Post-apocalyptic desert',
     },
     ground: 'grass1',
   },
@@ -199,7 +202,7 @@ export const MAP = {
   },
   '0/0': {
     name: {
-      ru: 'Город зомби',
+      ru: 'Город',
       en: 'Zombie city',
     },
     ground: 'asphalt',
@@ -311,8 +314,8 @@ export const MAP = {
   },
   '2/2': {
     name: {
-      ru: 'Командный пункт Рептилов',
-      en: 'Reptilian command post',
+      ru: 'Постапокалиптическая пустыня',
+      en: 'Post-apocalyptic desert',
     },
     ground: 'soil4',
   },
@@ -367,8 +370,8 @@ export const MAP = {
   },
   '3/3': {
     name: {
-      ru: 'Постапокалиптическая пустыня',
-      en: 'Post-apocalyptic desert',
+      ru: 'Командный пункт Рептилов',
+      en: 'Reptilian command post',
     },
     ground: 'soil4',
   },

@@ -12,7 +12,7 @@ import {
   IUpdateMessage,
   IShot,
   IExplosion,
-  ILocationUsers,
+  ILocationUnits,
 } from '../models/api';
 
 // Constants
@@ -41,7 +41,7 @@ export default class Gateway
 
   private _timeout!: ReturnType<typeof setInterval>;
   private _counter = 0;
-  private _locations: ILocationUsers[];
+  private _locations: ILocationUnits[];
 
   constructor() {
     // Go!
@@ -61,11 +61,7 @@ export default class Gateway
         (location) => location.users.length > 0,
       );
       this._locations
-        .filter(
-          (location: ILocationUsers) =>
-            this.game.world.locations[location.id].users.length > 0,
-        )
-        .forEach((location: ILocationUsers) => {
+        .forEach((location: ILocationUnits) => {
           this.server
             .to(location.id)
             .emit(
@@ -77,7 +73,7 @@ export default class Gateway
       // Удаление пользователей
       ++this._counter;
       if (this._counter > 4000) {
-        this.game.checkUsers();
+        this.game.cleanCheck();
         this._counter = 0;
       }
     }
@@ -165,7 +161,7 @@ export default class Gateway
       .emit(Messages.onExplosion, this.game.onExplosion(message));
   }
 
-  // Взрыв на клиенте
+  // Самоповреждение на клиенте
   @SubscribeMessage(Messages.selfharm)
   async selfharm(client, message: IUpdateMessage): Promise<void> {
     // console.log('Gateway selfharm!!!', message);

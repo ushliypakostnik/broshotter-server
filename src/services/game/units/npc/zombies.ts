@@ -8,7 +8,7 @@ import type {
   IUnitCollider,
   TResult,
 } from '../../../../models/modules';
-import type { IUnit, IUnitInfo } from '../../../../models/api';
+import type { IUnit, IUnitInfo, IExplosion, IUpdateMessage } from '../../../../models/api';
 
 // Constants
 import { EmitterEvents } from '../../../../models/modules';
@@ -23,11 +23,10 @@ export default class Zombies {
   public list: IUnit[];
   public listInfo: IUnitInfo[];
   public colliders: IUnitColliders;
+  public counter = 0;
 
   private _collider: IUnitCollider;
   private _item!: IUnit;
-  private _counter = 0;
-  private _time = 0;
   private _START = {
     id: '',
     name: 'Zombie',
@@ -35,12 +34,14 @@ export default class Zombies {
     animation: 'jump',
     isFire: false,
     isOnHit: false,
+    isDead: false,
     positionX: 0,
     positionY: 10,
     positionZ: 0,
     directionX: -0.7,
     directionY: 0,
     directionZ: 0.7,
+    isSleep: true,
   };
   private _id: string;
   private _listInfo2!: IUnitInfo[];
@@ -53,7 +54,15 @@ export default class Zombies {
   private _result2!: TResult;
   private _speed = Number(process.env.NPC_SPEED);
   private _direction: THREE.Vector3;
-  private _number = 0;
+  private _updates!: IUpdateMessage[];
+  private _listAnimate!: IUnit[];
+  private _listSleepAnimate!: IUnit[];
+  private _listSleepAnimateResult!: IUnit[];
+  private _number!: number;
+  private _number2!: number;
+
+  private _v1!: THREE.Vector3;
+  private _v2!: THREE.Vector3;
 
   constructor() {
     this.list = [];
@@ -63,9 +72,10 @@ export default class Zombies {
     this._direction = new THREE.Vector3();
   }
 
-  private _addUnit(self: ISelf) {
-    ++this._counter;
-    this._id = `NPC1/${this._counter}`;
+  // Добавить юнит
+  public addUnit(self: ISelf) {
+    ++this.counter;
+    this._id = `NPC1/${this.counter}`;
     this._item = {
       ...this._START,
       id: this._id,
@@ -110,7 +120,9 @@ export default class Zombies {
       isRun: false,
       isJump: false,
       isJump2: false,
-      timerJump: 0,
+      timer: 0,
+      timerNo: 0,
+      isBend: false,
       bend: 0,
       octree: new Octree(),
     };
@@ -119,6 +131,39 @@ export default class Zombies {
     self.emiiter.emit(EmitterEvents.addNPC, this._item);
   }
 
+  // Устаноаить позицию юниту
+  public setUnit(self: ISelf, unit: IUnit): void {
+    // console.log(unit.id, unit.positionX, unit.positionZ); 
+
+    this._item = this.list.find((npc) => npc.id === unit.id);
+    if (this._item) {
+      this._item.positionX = unit.positionX;
+      this._item.positionY = unit.positionY;
+      this._item.positionZ = unit.positionZ;
+      this._collider = this.colliders[unit.id];
+      if (this._collider) {
+        this._collider.collider.end.x = unit.positionX;
+        this._collider.collider.end.y = unit.positionY - 1.5;
+        this._collider.collider.end.z = unit.positionZ;
+
+        if (self.scene[unit.id]) {
+          self.scene[unit.id].position.set(
+            unit.positionX,
+            unit.positionY - 0.6,
+            unit.positionZ,
+          );
+        }
+      }
+    }
+  }
+
+  // Засыпают или просыпаются
+  public toggleSleep(ids: string[], is: boolean): void {
+    // console.log('Zombies sleep!: ', message);
+    this.list.filter((npc) => ids.includes(npc.id)).forEach((npc) => npc.isSleep = is);
+  }
+
+  // Столкновения
   private _collitions(
     self: ISelf,
     collider: IUnitCollider,
@@ -158,74 +203,130 @@ export default class Zombies {
   }
 
   public animate(self: ISelf): void {
-    // console.log('Zombies animate', units);
+    // Главная оптимизирующая механика
+    this._listAnimate = [...this.list.filter((npc) => !npc.isSleep)];
+    this._listSleepAnimate = [...this.list.filter((npc) => npc.isSleep)];
+    this._number = Helper.randomInteger(0, this._listSleepAnimate.length - 1);
+    this._number2 = this._listAnimate.length < Number(process.env.SLEEP_ANIMATE) ?
+      Number(process.env.SLEEP_ANIMATE) - this._listAnimate.length : 0;
+    if (this._number2) {
+      if (this._number + Number(process.env.SLEEP_ANIMATE) < this._listSleepAnimate.length) {
+        this._listSleepAnimateResult = this._listSleepAnimate
+          .slice(this._number, this._number + Number(process.env.SLEEP_ANIMATE));
+      } else {
+        this._listSleepAnimateResult = this._listSleepAnimate
+          .slice(this._number, this._listSleepAnimate.length - 1)
+          .concat(this._listSleepAnimate
+            .slice(0, this._number + Number(process.env.SLEEP_ANIMATE) - this._listSleepAnimate.length + 1)
+          );
+      }
+    } else this._listSleepAnimateResult = [];
 
-    // Решение на создание нового зомби
-    this._time += self.events.delta;
-    if (this._time > 0.01) {
-      if (this._counter < Number(process.env.MAX_ZOMBIE || 5))
-        this._addUnit(self);
-      this._time = 0;
-    }
-
-    if (this.list.length) {
-      this.list.forEach((unit: IUnit) => {
+    this._listAnimate.concat(this._listSleepAnimateResult)
+      .filter((unit) => !unit.isDead)
+      .forEach((unit: IUnit) => {
         this._collider = this.colliders[unit.id];
         if (this._collider) {
-          if (unit.animation !== 'idle' && unit.animation !== 'dead')
-            this._setUnitOctree(self, unit.id);
+          // Строим октодеревья для всех кто не спокоен или мертв
+          if (unit.animation !== 'idle' && !unit.isDead) this._setUnitOctree(self, unit.id);
 
-          if (this._collider.isNotJump) {
-            if (unit.animation !== 'dead') {
-              this._number = Helper.randomInteger(1, 500);
+          if (unit.animation !== 'dead') {
+            // Урон
+            if (unit.isOnHit) {
+              // console.log('Под ударом!!!');
+              this._collider.timer += self.events.delta;
 
-              // Решения
-              if (this._number === 1 && !this._collider.isForward) {
-                this._collider.isForward = true;
-              } else if (this._number === 2 && this._collider.isForward) {
-                this._collider.isForward = false;
-              } else if (
-                this._number === 3 &&
-                !this._collider.isJump &&
-                this._collider.isForward
-              ) {
-                this._collider.isJump = true;
-              } else if (this._number === 4 && !this._collider.isJump) {
-                this._collider.bend = Helper.randomInteger(-1, 1);
-              }
-
-              if (this._collider.bend !== 0 && !this._collider.isJump)
-                self.scene[unit.id].rotateY(
-                  this._collider.bend * self.events.delta,
-                );
-
-              if (this._collider.isForward) {
-                this._speed = this._collider.isRun
-                  ? Number(process.env.NPC_SPEED) * 2
-                  : Number(process.env.NPC_SPEED);
-                this._moveForward(self, unit.id);
-              }
-
-              if (this._collider.isJump) {
-                this._collider.timerJump += self.events.delta;
-
-                if (this._collider.timerJump > 1 && !this._collider.isJump2) {
-                  this._collider.velocity.y += 100;
-                  this._collider.isJump2 = true;
-                }
-
-                if (this._collider.timerJump > 3) {
-                  this._collider.timerJump = 0;
-                  this._collider.isJump = false;
-                  this._collider.isJump2 = false;
-                }
+              if (this._collider.timer > 1) {
+                this._collider.timer = 0;
+                this._collider.timerNo += self.events.delta;
+                unit.isOnHit = false;
               }
             }
 
-            this._collider.velocity.addScaledVector(
-              this._collider.velocity,
-              Helper.damping(self.events.delta),
-            );
+            // Прыжок
+            if (this._collider.isJump) {
+              // console.log('Прыгаю!!!');
+              this._collider.timer += self.events.delta;
+
+              if (this._collider.timer > 1 && !this._collider.isJump2) {
+                this._collider.velocity.y += 120;
+                this._collider.isJump2 = true;
+              }
+
+              if (this._collider.timer > 3) {
+                this._collider.timer = 0;
+                this._collider.timerNo += self.events.delta;
+                this._collider.isJump = false;
+                this._collider.isJump2 = false;
+              }
+            }
+
+            // Поворот
+            if (this._collider.isBend) {
+              self.scene[unit.id].rotateY(this._collider.bend * self.events.delta);
+            }
+
+            // Идти вперед
+            if (unit.animation !== 'idle' && this._collider.isForward) {
+              // console.log('Продвигаюсь!!!');
+              this._speed = this._collider.isRun
+                ? Number(process.env.NPC_SPEED) * 2
+                : Number(process.env.NPC_SPEED);
+              this._moveForward(self, unit.id);
+            }
+
+            // На месте
+            if (unit.animation === 'idle') {
+              this._collider.velocity.x = 0;
+              this._collider.velocity.z = 0;
+            }
+          }
+
+          // Решения
+          if (unit.animation !== 'dead' &&
+            !this._collider.timer &&
+            !this._collider.timerNo
+          ) {
+            this._number = Helper.randomInteger(1, Number(process.env.MOTIVATION));
+            if (this._number === 1 && !this._collider.isForward) {
+              // console.log('Хочу идти вперед!!!');
+              this._collider.isForward = true;
+              this._collider.timerNo += self.events.delta;
+            } else if (this._number === 2 && this._collider.isForward) {
+              // console.log('Хочу остановиться!!!');
+              this._collider.isForward = false;
+              this._collider.velocity.x = 0;
+              this._collider.velocity.z = 0;
+              this._collider.timerNo += self.events.delta;
+            } else if (this._number === 3 &&
+              !this._collider.isJump &&
+              this._collider.isNotJump &&
+              this._collider.isForward) {
+              // console.log('Хочу прыгнуть!!!');
+              this._collider.isJump = true;
+            } else if (this._number === 4 && !this._collider.isJump && !this._collider.isBend) {
+              // console.log('Хочу повернуть!!!');
+              this._collider.isBend = true;
+              this._collider.bend = Helper.staticPlusOrMinus();
+              this._collider.timerNo += self.events.delta;
+            } else if (this._number === 5 && this._collider.isBend) {
+              // console.log('Хочу перестать поворачивать!!!');
+              this._collider.isBend = false;
+              this._collider.timerNo += self.events.delta;
+            }
+          } else if (this._collider.timerNo) {
+            this._collider.timerNo += self.events.delta;
+            if (this._collider.timerNo > 2) {
+              this._collider.timerNo = 0;
+            }
+          }
+
+          // Гравитация
+          if (unit.animation === 'dead') {
+            this._collider.velocity.y -=
+              Number(process.env.GRAVITY) * self.events.delta;
+            this._collider.velocity.x = 0;
+            this._collider.velocity.z = 0;
           } else {
             this._collider.velocity.y -=
               Number(process.env.GRAVITY) * self.events.delta;
@@ -238,12 +339,20 @@ export default class Zombies {
           this._collitions(self, this._collider, self.units[unit.id], unit.id);
 
           if (this._collider.collider.end.y < 0.5) {
+            if (unit.animation === 'dead' && !unit.isDead) unit.isDead = true;
+
             this._collider.collider.end.y = 0.5;
             this._collider.collider.start.y = 2.5;
           }
 
+          // Выставляем анимацию
           if (unit.health <= 0) unit.animation = 'dead';
           else {
+            if (unit.health < 100) unit.health += self.events.delta *
+              Number(process.env.REGENERATION) *
+              Number(process.env.NPC_REGENERATION_COEF);
+            if (unit.health > 100) unit.health = 100;
+
             if (unit.isOnHit) unit.animation = 'hit';
             else if (this._collider.isJump) unit.animation = 'jump';
             else if (this._collider.isRun) unit.animation = 'run';
@@ -251,6 +360,7 @@ export default class Zombies {
             else unit.animation = 'idle';
           }
 
+          // Записываем данные
           this._v = this._collider.collider.end;
           unit.positionX = this._v.x;
           unit.positionY = this._v.y - 1.5;
@@ -269,7 +379,6 @@ export default class Zombies {
           }
         }
       });
-    }
   }
 
   private _moveForward(self: ISelf, id: string): void {
@@ -279,8 +388,8 @@ export default class Zombies {
     this.colliders[id].velocity.add(this._direction);
   }
 
+  // Пересоздаем динамическое октодерево из самых ближних коробок и "без его коробки"
   private async _setUnitOctree(self: ISelf, id: string): Promise<void> {
-    // Пересоздаем динамическое октодерево из самых ближних коробок и "без его коробки"
     this._group = new THREE.Group();
     if (self.unitsByLocations[self.units[id]])
       this._listInfo2 = self.unitsByLocations[self.units[id]]
@@ -289,7 +398,7 @@ export default class Zombies {
             item.animation !== 'dead' &&
             item.id !== id &&
             self.scene[item.id].position.distanceTo(self.scene[id].position) <
-              2,
+            3,
         )
         .sort(
           (a, b) =>
@@ -307,5 +416,50 @@ export default class Zombies {
     this.colliders[id].octree = this._octree;
     this._group.remove();
     this._group = null;
+  }
+
+  public onExplosion(message: IExplosion): IUpdateMessage[] {
+    // console.log('Zombies onExplosion!!!!!!!!!!!!!: ', message);
+    this._updates = [];
+    this.list.filter((unit) => new THREE.Vector3(
+      message.positionX,
+      message.positionY,
+      message.positionZ,
+    ).distanceTo(new THREE.Vector3(
+      unit.positionX,
+      unit.positionY,
+      unit.positionZ,
+    )) < Number(process.env.EXPLOSION_DISTANCE))
+      .forEach((unit: IUnit) => {
+        this._v1 = new THREE.Vector3(
+          message.positionX,
+          message.positionY,
+          message.positionZ,
+        );
+        this._v2 = new THREE.Vector3(
+          unit.positionX,
+          unit.positionY,
+          unit.positionZ,
+        );
+        this._number = this._v1.distanceTo(this._v2);
+        // console.log('Zombies onExplosion!!!!!!!!!!!!!: ', unit.id, this._number);
+        if (this._number < Number(process.env.EXPLOSION_DISTANCE)) {
+          // При попадании по коробке - ущерб сильнее
+          // Если режим скрытый - в два раза меньше
+          unit.health +=
+            (-1 / this._number) *
+            (unit.id === message.enemy ?
+              Number(process.env.DAMAGE) * Number(process.env.NPC_DAMAGE_COEF) * Number(process.env.EXACT_DAMAGE_COEF) :
+              Number(process.env.DAMAGE) * Number(process.env.NPC_DAMAGE_COEF));
+          this._updates.push({
+            id: unit.id,
+            health: unit.health,
+            is: unit.id === message.enemy,
+          });
+          // Если растояние от взрыва в два раза меньше того, от которого случается урон - показываем удар на персонаже 
+          if (this._number < Number(process.env.EXPLOSION_DISTANCE) / 2) unit.isOnHit = true;
+        }
+      });
+    return this._updates;
   }
 }

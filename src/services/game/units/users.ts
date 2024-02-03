@@ -8,9 +8,9 @@ import type { ISelf } from '../../../models/modules';
 import {
   IUserBack,
   IUpdateMessage,
-  IOnExplosion,
   IExplosion,
   IUnitInfo,
+  IUnit,
 } from '../../../models/api';
 
 // Modules
@@ -34,17 +34,21 @@ export default class Users {
   private _v1!: THREE.Vector3;
   private _v2!: THREE.Vector3;
   private _mesh!: THREE.Mesh;
+  private _date!: Date;
+  private _time!: number;
+  private _self!: number;
 
   private _START = {
     health: 100,
     name: null,
     positionX: 0,
-    positionY: 30,
+    positionY: 20,
     positionZ: 0,
     directionX: -0.7,
     directionY: 0,
     directionZ: 0.7,
     animation: 'jump',
+    isSleep: false,
   };
 
   constructor() {
@@ -54,6 +58,10 @@ export default class Users {
   }
 
   // Utils
+
+  public getList(): IUnit[] {
+    return this.list;
+  }
 
   private _getUserById(id: string): User {
     return this.list.find((player) => player.id === id);
@@ -88,12 +96,12 @@ export default class Users {
       ...this._START,
     };
     this.list.push(this._item as User);
-    const date = new Date();
-    const time = Helper.getUnixtime(date);
+    this._date = new Date();
+    this._time = Helper.getUnixtime(this._date);
     this.listBack.push({
       id: this._strind,
-      last: date,
-      unix: time,
+      last: this._date,
+      unix: this._time,
       time: null,
       play: 0,
       counter: ++this.counter,
@@ -122,6 +130,7 @@ export default class Users {
   }
 
   private _removePlayer(id: string): void {
+    console.log('Users _removePlayer!!!', id);
     this.list = this.list.filter((player) => player.id !== id);
     this.listBack = this.listBack.filter((player) => player.id !== id);
     this.listInfo = this.listInfo.filter((player) => player.id !== id);
@@ -168,10 +177,18 @@ export default class Users {
     this.listInfo.push(this._itemInfo);
   }
 
-  public onExplosion(message: IExplosion): IOnExplosion {
+  public onExplosion(message: IExplosion): IUpdateMessage[] {
     // console.log('Users onExplosion!!!!!!!!!!!!!: ', message);
     this._updates = [];
-    this.list.forEach((player: User) => {
+    this.list.filter((player) => new THREE.Vector3(
+      message.positionX,
+      message.positionY,
+      message.positionZ,
+    ).distanceTo(new THREE.Vector3(
+      player.positionX,
+      player.positionY,
+      player.positionZ,
+    )) < Number(process.env.EXPLOSION_DISTANCE)).forEach((player: User) => {
       this._v1 = new THREE.Vector3(
         message.positionX,
         message.positionY,
@@ -182,12 +199,18 @@ export default class Users {
         player.positionY,
         player.positionZ,
       );
-      if (this._v1.distanceTo(this._v2) < 5) {
-        // При попадании по коробке - ущерб в три раза сильнее
+      if (this._v1.distanceTo(this._v2) < Number(process.env.EXPLOSION_DISTANCE)) {
+        this._self = 1;
+        if (message.enemy === player.id) this._self = Number(process.env.SELF_DAMAGE);
+        // Если это выстрел игрока - ущерб сильнее
+        // При попадании по коробке - ущерб сильнее
         // Если режим скрытый - в два раза меньше
         player.health +=
+          this._self *
           (-1 / this._v1.distanceTo(this._v2)) *
-          (player.id === message.enemy ? 15 : 5) *
+          (player.id === message.enemy ?
+            Number(process.env.DAMAGE) * Number(process.env.EXACT_DAMAGE_COEF) :
+            Number(process.env.DAMAGE)) *
           (player.animation.includes('hide') ? 0.5 : 1);
         this._updates.push({
           id: player.id,
@@ -197,10 +220,7 @@ export default class Users {
       }
       if (player.health < 0) player.animation = 'dead';
     });
-    return {
-      message,
-      updates: this._updates,
-    };
+    return this._updates;
   }
 
   public onSelfharm(message: IUpdateMessage): IUpdateMessage {
@@ -299,6 +319,11 @@ export default class Users {
     this.list.forEach((user) => {
       this._mesh = self.scene[user.id];
       if (this._mesh) {
+        if (user.health > 0) {
+          if (user.health < 100) user.health += self.events.delta * Number(process.env.REGENERATION);
+          if (user.health > 100) user.health = 100;
+        }
+
         if (user.animation.includes('hide'))
           this._mesh.position.set(
             user.positionX,
@@ -315,10 +340,11 @@ export default class Users {
     });
   }
 
-  public checkUsers(): void {
+  public cleanCheck(): void {
+    console.log('Users cleanCheck!!!');
     const time = Helper.getUnixtime();
     this.listBack.forEach((player: IUserBack) => {
-      if (time - player.time > 43200) this._removePlayer(player.id);
+      if (time - player.time > Number(process.env.CLEAN_CHECK_TIME)) this._removePlayer(player.id);
     });
   }
 }
