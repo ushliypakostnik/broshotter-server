@@ -203,7 +203,7 @@ export const MAP = {
   '0/0': {
     name: {
       ru: 'Город',
-      en: 'Zombie city',
+      en: 'City',
     },
     ground: 'asphalt',
   },

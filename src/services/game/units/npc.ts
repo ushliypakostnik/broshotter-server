@@ -81,12 +81,13 @@ export default class NPC {
   }
 
   public animate(self: ISelf): void {
-    // console.log('Zombies animate', units);
+    // console.log('NPC animate!!!', this._time);
     // Решение на создание нового зомби
     this._time += self.events.delta;
     if (this._time > 0.1) {
-      if (this._getCount() < Number(process.env.MAX_NPC))
-      this.zombies.addUnit(self);
+      if (this._getCount() < Number(process.env.MAX_NPC)) {
+        this.zombies.addUnit(self);
+      }
       this._time = 0;
     }
 

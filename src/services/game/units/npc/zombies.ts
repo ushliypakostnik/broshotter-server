@@ -208,19 +208,19 @@ export default class Zombies {
     this._listSleepAnimate = [...this.list.filter((npc) => npc.isSleep)];
     this._number = Helper.randomInteger(0, this._listSleepAnimate.length - 1);
     this._number2 = this._listAnimate.length < Number(process.env.SLEEP_ANIMATE) ?
-      Number(process.env.SLEEP_ANIMATE) - this._listAnimate.length : 0;
-    if (this._number2) {
-      if (this._number + Number(process.env.SLEEP_ANIMATE) < this._listSleepAnimate.length) {
-        this._listSleepAnimateResult = this._listSleepAnimate
-          .slice(this._number, this._number + Number(process.env.SLEEP_ANIMATE));
-      } else {
-        this._listSleepAnimateResult = this._listSleepAnimate
-          .slice(this._number, this._listSleepAnimate.length - 1)
-          .concat(this._listSleepAnimate
-            .slice(0, this._number + Number(process.env.SLEEP_ANIMATE) - this._listSleepAnimate.length + 1)
-          );
-      }
-    } else this._listSleepAnimateResult = [];
+      Number(process.env.SLEEP_ANIMATE) - this._listAnimate.length :
+      Number(process.env.SLEEP_ANIMATE_MIN);
+
+    if (this._number + this._number2 < this._listSleepAnimate.length) {
+      this._listSleepAnimateResult = this._listSleepAnimate
+        .slice(this._number, this._number + this._number2);
+    } else {
+      this._listSleepAnimateResult = this._listSleepAnimate
+        .slice(this._number, this._listSleepAnimate.length - 1)
+        .concat(this._listSleepAnimate
+          .slice(0, this._number + this._number2 - this._listSleepAnimate.length + 1)
+        );
+    }
 
     this._listAnimate.concat(this._listSleepAnimateResult)
       .filter((unit) => !unit.isDead)
